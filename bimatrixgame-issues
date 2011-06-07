@@ -1,0 +1,101 @@
+My \bimatrixgame macro takes 8 parameters:
+\bimatrixgame{#1}{#2}{#3}{#4}{#5}{#6}{#7}{#8}
+
+where 
+
+#1  dimension of the unitlength, typically 4mm,
+    where each cell of the strategic form is 4x4
+    units wide.  The top left corner of the grid
+    has coordinates (0,0),  the cell to the right
+    of it (top left) coordinates (4,0), the cell
+    in the second row first column (0,-4)  and so
+    on. This allows to use the \put command in
+    the main parameter #6 if needed.
+
+#2  number of rows
+
+#3  number of columns
+
+#4  name of row player
+
+#5  name of column player
+
+#6  list of strategy names for rows
+
+#7  list of strategy names for columns
+
+#8  list of payoff entries
+each of which is either 
+
+\payoffpairs{#1}{#2}{#3}
+
+or
+
+\singlepayoffs{#1}{#2}
+
+where 
+
+#1 row for payoffs
+
+#2 list of row player payoffs in row #1
+
+#3 list of column player payoffs in row #1
+
+and each list is a list of items that can be any LaTeX 
+expression, normally in {} unless it is a single digit
+when the braces can be omitted.
+Note that negative numbers have to be written as
+{$-1$} (i.e. with $ $ so that the minus sign is long
+and not just a dash when using  {-1}.
+
+Example:
+
+    \bimatrixgame{4mm}{2}{3}{I}{II}%
+    {{T}{B}}%
+    {{l}{c}{r}}
+    {
+    \payoffpairs{1}{012}{421}
+    \payoffpairs{2}{301}{132}
+    }
+
+which, because it has single digits only, is best seen 
+as displaying the payoff matrices to the two players next to
+each other: 
+
+for player 1,
+
+    0 1 2
+    3 0 1
+
+and for player 2
+
+    4 2 1
+    1 3 2
+
+ISSUES
+------
+for conversion from normal form to \bimatrixgame:
+
+- format for specifying names for players and strategies
+  defaults?  I, II for players
+  T,B for two rows,  l,r  for two columns,  l,c,r  for three
+  columns,   T,M,B for three rows,  a,b,c,d.... for more
+  than 3 columns?
+
+- surround all payoffs by {$ $} to get negative entries
+  right (make sure to have a blank if no payoff, with $ $
+  instead of $$ which creates LaTeX error
+
+- fractions can first be displayed literally  like  $11/15$
+  or parsed more intelligently, subject to the user wanting
+  that option, as  $\frac{11}{15}$ ; see second Example with
+  row payoff for cell (ZP, ad).
+
+- conversion to .eps format (a few Unix lines from LaTeX
+  file, I know how, the question is on which server).
+
+- computation of best responses for row and column player and
+  surrounding those payoffs with \fbox.
+
+All this can be done nicely incrementally!  
+
