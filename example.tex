@@ -1,0 +1,63 @@
+\documentclass[12pt]{article}
+
+\oddsidemargin=.46cm    
+\textwidth=15cm
+\textheight=232mm
+\topmargin=-.2cm       
+
+\input{gamesty}  %  defines the bimatrixgame macro
+\usepackage{mathptmx}  % italics fonts text and maths
+\pagestyle{empty}  % no page numbers
+\parindent0pt
+\begin{document}
+
+{\Large Illustration of the \verb.\bimatrixgame. macro}
+
+\vskip2ex
+
+Example: $2\times 3$ game with typical strategy names;
+note $-1$ written as \verb.{$-1$}., not needed for single 
+integer payoffs which can even miss surrounding \verb.{ }..
+For the whole game, surrounding \verb.\[ \]. gives displayed
+equation.  Slightly larger boxes (5mm instead of 4mm).
+
+\[
+\bimatrixgame{5mm}{2}{3}{I}{II}%
+{{T}{B}}%
+{{l}{c}{r}}
+{
+\payoffpairs{1}{012}{42{$-1$}}
+\payoffpairs{2}{301}{132}
+}
+\]
+
+\vfill
+Example: $4\times 6$ game with strategy names referring to
+game tree, and boxes around best-response payoffs.
+Naked display without surrounding \verb.\[ \]..
+Note \verb.{$\frac{1}{2}$}.\,.
+
+\bimatrixgame{4mm}{4}{6}{I}{II}%
+{{$X*$}{$Y*$}{$ZP$}{$ZQ$}}%
+{{$ad$}{$ae$}{$bd$}{$be$}{$cd$}{$ce$}}
+{
+\payoffpairs{1}{{\fbox 3}3{\fbox 2}2{\fbox 4}{\fbox 4}}{44{\fbox 5}{\fbox 5}{\fbox 5}{\fbox 5}}
+\payoffpairs{2}{22{\fbox 2}222}{{\fbox 3}{\fbox 3}{\fbox 3}{\fbox 3}{\fbox 3}{\fbox 3}}
+\payoffpairs{3}{{$\frac{1}{2}$}01010}{3{\fbox 5}3{\fbox 5}3{\fbox 5}} \payoffpairs{4}{1{\fbox 4}1{\fbox 4}1{\fbox 4}}{{\fbox 3}2{\fbox 3}2{\fbox 3}2}
+}
+
+\vfill
+Example: zero-sum game 
+
+\[
+\bimatrixgame{3.7mm}{2}{2}{Max}{min}%
+{{$R_L$}{$F_L$}}%
+{{$m_M$}{$p_M$}}%
+{
+\singlepayoffs{1}{{$-1/3$}{0}}
+\singlepayoffs{2}{{0}{$-1/6$}}
+}
+\]
+
+\end{document}
+

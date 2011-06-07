@@ -1,0 +1,69 @@
+% MACROS FOR CREATING bimatrix games
+% registers allocated once only
+\newcount\rows
+\newcount\cols
+\newcount\rowcoord
+\newcount\colcoord
+\newcount\m
+\newcount\n
+% the crucial variable-length-parameter macro \dosth
+\def\dosth#1{\ifx###1##\else\dofirst#1\anytoken\fi}
+\def\doagain#1\anytoken{\dosth{#1}}
+% example of \dofirst
+% \def\dofirst#1{{$\langle#1\rangle$}\doagain} 
+% example of \dosth
+% \dosth{1234x{x^3}y}
+\def\payoffpairs#1#2#3{\m=#1\multiply\m by 4 \advance\m by -1 \n=1
+  \def\dofirst##1{\put(\n,-\m){\makebox(0,0){\strut##1}}\advance\n by 4 \doagain}%
+  \dosth{#2\strut}%
+  \m=#1\multiply\m by 4 \advance\m by -3 \n=3 \dosth{#3\strut}}
+\def\singlepayoffs#1#2{\m=#1\multiply\m by 4 \advance\m by -2 \n=2
+  \def\dofirst##1{\put(\n,-\m){\makebox(0,0){\strut##1}}\advance\n by 4 \doagain}%
+  {\large\dosth{#2\strut}}}
+% the bimatrix game command
+\newcommand{\bimatrixgame}[8]{%
+\setlength{\unitlength}{#1}%
+\rows=#2
+\cols=#3
+\rowcoord=\rows
+\colcoord=\cols
+\multiply\rowcoord by 4
+\multiply\colcoord by 4
+\m=\rowcoord
+\n=\colcoord
+\advance\m by 2 % 2 units left of payoff table
+\advance\n by 2 % 2 units above payoff table
+\begin{picture}(\n,\m)(-2,-\rowcoord)
+\m=\rows
+\n=\cols
+\advance\m by 1
+\advance\n by 1 
+\thinlines
+\multiput(0,0)(0,-4){\m}{\line(1,0){\colcoord}}
+\multiput(0,0)(4,0){\n}{\line(0,-1){\rowcoord}}
+\put(0,0){\line(-1,1){2}}
+\put(-1.5,0.5){\makebox(0,0)[r]{#4}}  % name player I
+\put(-.7,1.7){\makebox(0,0)[l]{#5}}   % name player II
+%row annotations - even with long strategy names, stick out to the left
+\n=2
+\def\dofirst##1{\put(-0.8,-\n){\makebox(0,0)[r]{\strut##1}}\advance\n by 4
+   \doagain}
+\dosth{#6\strut} 
+%column annotations
+\n=2
+\def\dofirst##1{\put(\n,1.0){\makebox(0,0){\strut##1}}\advance\n by 4
+   \doagain}
+\dosth{#7\strut}#8%
+\end{picture}}
+%
+% example usage:
+% \def\mm#1{\makebox(0,0){\strut#1}}% 
+%
+% \bimatrixgame{4mm}{3}{4}{I}{II}{TMB}{lcr{\it out}}
+% {
+% \payoffpairs{1}{00{$a^2$}0}{1{\fbox 3}{\fbox 3}2}
+% \payoffpairs{2}{0000}{1111}
+% \singlepayoffs{3}{5555}
+% % \multiput(0,-0.13)(.16,-.16){75}{\tiny.} 
+% \put(10,-2){\mm{*}}
+% } 
