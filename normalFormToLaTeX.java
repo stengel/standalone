@@ -7,13 +7,15 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Arrays;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 //to-do
 //ability to enter parameters 1, 4, 5 (size of cell, name of row player, name of col player) (?)
 //move the bimatrix macro format to file instead of hard-coding (?)
-//some error handling for mal-formed inputs?
-//support for fractions (rational numbers) including 
-//		change payoff type from string to Number? Rational (similar to gte)?
+//error handling for mal-formed inputs?
+
+//(further) support for fractions - need Rational numbers as in gte?
 //conversion to .eps format
 //computation of best responses for row and column player and surrounding the payoffs with \fbox
 public class normalFormToLaTeX 
@@ -22,6 +24,7 @@ public class normalFormToLaTeX
 	private ArrayList<ArrayList<String>> a2;
 	private String filename;
 	private Boolean bSinglePayoff = false;
+	private Boolean bPrettyFraction = true;  //apply additional formatting to fractions - yes or no
 	
 	/* constructor - by file which defines matrices */
 	public normalFormToLaTeX(String fn)
@@ -129,23 +132,18 @@ public class normalFormToLaTeX
 	
 	//map tokens found in the input file to the bimatrix macro template
 	//improvement: read from file instead of hard-coding 
-	public String mapTokensToBMTemplate()
-	{
-		//determine number of columns
-		ArrayList<String> a1row;
-		ArrayList<String> a2row;
-		
-		int numCols = a1.get(0).size();
-		int numRows = a1.size();
-		
-		/* \bimatrixgame{4mm}{2}{3}{I}{II}%
+	/* \bimatrixgame{4mm}{2}{3}{I}{II}%
 	    {{T}{B}}%
 	    {{l}{c}{r}}
 	    {
 	    \payoffpairs{1}{012}{421}
 	    \payoffpairs{2}{301}{132}
 	    } */
-		
+	public String mapTokensToBMTemplate()
+	{
+		int numCols = a1.get(0).size();
+		int numRows = a1.size();
+	
 		String s ="\\bimatrixgame{4mm}";
 		s = s + "{" + numRows + "}{" +numCols + "}{I}{II}%\n";
 		
@@ -159,6 +157,7 @@ public class normalFormToLaTeX
 		return s;
 	}
 	
+	//create String representing LateX document
 	public String getLaTeXString()
 	{
 		String s = "\\documentclass{article}\n\\input{gamesty}%\n\\begin{document} \n";
@@ -167,6 +166,7 @@ public class normalFormToLaTeX
 		return s;
 	}
 	 
+	//use String representing LateX document to create file on OS
 	public void createLaTeXFile()
 	{
 		try 
@@ -193,7 +193,7 @@ public class normalFormToLaTeX
 	         default: 
 	         {
 	        	 label = "{";
-	        	 chr = 97; //97 = ascii 'a'
+	        	 chr = 97; //97 = ascii 'a' - label cols a, b, c, d, e...etc.
 	        	 for (int i = 97; i < numRows+97; i++)
 	        	 {
 	        		 chr = (char) i;
@@ -250,7 +250,7 @@ public class normalFormToLaTeX
 			
 			for(int j = 0; j < numCols; j++) //player I payoffs
 			{
-				r = r+ "{$" + a1.get(i).get(j) + "$}";
+				r = r + wrapPayoff(a1.get(i).get(j));
 			}
 			r = r + "}" ;
 			
@@ -260,7 +260,7 @@ public class normalFormToLaTeX
 				
 				for(int j = 0; j < numCols; j++) //player II payoffs
 				{
-					r = r+ "{$" + a2.get(i).get(j) + "$}";
+					r = r + wrapPayoff(a2.get(i).get(j));
 				}
 				r = r + "}";
 			}
@@ -269,6 +269,35 @@ public class normalFormToLaTeX
 		
 		s = s + "}\n";
 		return s;
+	}
+	
+	public String wrapPayoff(String p)
+	{
+		if (!bPrettyFraction) {p = 	"{$" + p + "$}";}
+		else 
+		{  
+			boolean bNegFraction = false;
+			
+			Pattern pat = Pattern.compile("/");
+			Pattern neg = Pattern.compile("-");
+			Matcher m = pat.matcher(p);
+			Matcher mneg = neg.matcher(p);
+			
+	        if (m.find()) //fractional input
+	        { 
+	        	//determine if fraction negative or positive: 
+	        	//		if find one neg sign, and no others, then negative
+	        	if (mneg.find() & !mneg.find()) { bNegFraction = true; }
+	        	p = mneg.replaceAll("");  //eliminate all negative signs, will format at front 
+	        		
+	        	String[] result = pat.split(p);
+
+	        	if (bNegFraction) { p = "{$-\\frac{"+result[0]+"}{"+result[1]+"}$}"; }
+	        	else { p = "{$\\frac{"+result[0]+"}{"+result[1]+"}$}"; }
+	        }
+	        else {p = 	"{$" + p + "$}";}
+		}
+		return p;
 	}
 
 	public ArrayList<ArrayList<String>> arrayToArrayList2D(String[][] s)
