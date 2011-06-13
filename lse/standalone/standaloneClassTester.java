@@ -1,9 +1,11 @@
+/* Created 13 June 2011 */
 package lse.standalone;
 
 public class standaloneClassTester 
 {
 	public static void main (String [] args)
 	{	
+		// create formatted output via file
 		String[] filename = { "matrix22.txt", "matrix23.txt", "matrix34.txt", "matrix33.txt", "matrix33single.txt" };
 		
 		for (int i = 0; i < filename.length; i++)
@@ -12,6 +14,7 @@ public class standaloneClassTester
 			ml.createLaTeXFile(); 
 		} 
 		
+		//create formatted output via parameter passing
 		String[][] p1_22 = {{"2", "3"}, {"1", "1/2"}};
 		String[][] p1_23 = {{"2", "3", "0"}, {"1", "1/2", "-2/3"}};
 		String[][] p1_33 = {{"2", "3", "1"}, {"9/3", "-3", "5"},{"1", "1/2", "2"}};

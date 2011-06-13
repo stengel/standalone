@@ -1,3 +1,4 @@
+/* Created 9 June 2011 */
 package lse.standalone;
 
 import java.io.BufferedReader;
@@ -85,7 +86,7 @@ public class normalFormToLaTeX
 	
 	public void setShowBestResponse(boolean b)
 	{
-		bShowBestResponse = b;
+		bShowBestResponse = b & !bSinglePayoff;
 	}
 	
 	public void setPrettyFraction(boolean b)
@@ -231,7 +232,7 @@ public class normalFormToLaTeX
 			}
 		}
 		
-		//store best response (T or F) in array for use in formatting table entry
+		//store best response (T or F) in array for use in formatting table entry later
 		for(int j=0; j < this.numCols; j++)
 		{
 			for(int i = 0; i < this.numRows; i++)
@@ -415,10 +416,8 @@ public class normalFormToLaTeX
 		}
 		
 		if (!bPrettyFraction) {p = "{$" + p + "$}";}
-		else
+		else  //reformat for nicer fractions
 		{  
-			boolean bNegFraction = false;
-			
 			Pattern pat = Pattern.compile("/");
 			Pattern neg = Pattern.compile("-");
 			Matcher m = pat.matcher(p);
@@ -426,16 +425,15 @@ public class normalFormToLaTeX
 			
 	        if (m.find()) //fractional input
 	        { 
-	        	//determine if fraction negative or positive: 
-	        	//		if find one neg sign, and no others, then negative
-	        	//-if (mneg.find() & !mneg.find()) { bNegFraction = true; }
 	        	p = mneg.replaceAll("");  //eliminate negative signs, will format at front 
 	        		
 	        	String[] result = pat.split(p);
 	      
 	        	String negSign = "";
+	        	
+	        	//determine if fraction negative or positive: 
+	        	//		if find one neg sign, and no others, then negative
 	        	if (mneg.find() & !mneg.find()) { negSign = "-"; }
-	        	//-if (bNegFraction) { negSign = "-"; } 
 	        	
 	        	p = "{$" + negSign + "\\frac{"+result[0]+"}{"+result[1]+"}$}";
 	        }
