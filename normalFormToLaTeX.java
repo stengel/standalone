@@ -13,24 +13,38 @@ import java.util.regex.Matcher;
 //to-do
 //ability to enter parameters 1, 4, 5 (size of cell, name of row player, name of col player) (?)
 //move the bimatrix macro format to file instead of hard-coding (?)
-//error handling for mal-formed inputs?
+//error handling for mal-formed inputs (?)
 
-//(further) support for fractions - need Rational numbers as in gte?
 //conversion to .eps format
-//computation of best responses for row and column player and surrounding the payoffs with \fbox
 public class normalFormToLaTeX 
 {
 	private ArrayList<ArrayList<String>> a1;
 	private ArrayList<ArrayList<String>> a2;
+	
+	private boolean[][] br1;  //best response corresponding to a1
+	private boolean[][] br2;  //best response corresponding to a2
+	
+	private int numRows;    //number of rows in payoff matrices
+	private int numCols;	//number of columsn in payoff matrices
+	
 	private String filename;
-	private Boolean bSinglePayoff = false;
-	private Boolean bPrettyFraction = true;  //apply additional formatting to fractions - yes or no
+	
+	private boolean bSinglePayoff = false; //will be updated based on input matrices
+	private boolean bPrettyFraction = true;  //apply additional formatting to fractions - yes or no
+	private boolean bShowBestResponse = true;  //show a box around the best response
 	
 	/* constructor - by file which defines matrices */
 	public normalFormToLaTeX(String fn)
 	{
 		filename = fn;
 		splitMatrices(fileToArrayList());
+	}
+	
+	public normalFormToLaTeX(String fn, boolean bFraction, boolean bBestResponse)
+	{
+		this(fn);
+		bPrettyFraction = bFraction;
+		bShowBestResponse = bBestResponse;
 	}
 	
 	/* constructor - payoff matrices passed in as parameters */
@@ -48,16 +62,33 @@ public class normalFormToLaTeX
 		}
 	}
 	
+	public normalFormToLaTeX(String[][] p1, String[][] p2, boolean bFraction, boolean bBestResponse)
+	{
+		this(p1, p2);
+		bPrettyFraction = bFraction;
+		bShowBestResponse = bBestResponse;
+	}
+	
 	public void setFilename(String fn)
 	{
 		filename = fn;
 	}
 	
+	public void setShowBestResponse(boolean b)
+	{
+		bShowBestResponse = b;
+	}
+	
+	public void setPrettyFraction(boolean b)
+	{
+		bPrettyFraction = b;
+	}
+	
 	//reads the input file 
 	//outputs an ArrayList containing the list of lines (strings) that make up the file
-	public ArrayList<String> fileToArrayList() 
+	private ArrayList<String> fileToArrayList() 
 	{
-		ArrayList<String> fileLines = new ArrayList();
+		ArrayList<String> fileLines = new ArrayList<String>();
 		String fileLine;
 		
 		try
@@ -82,10 +113,10 @@ public class normalFormToLaTeX
 	//there may be either one or two matrices in the input text
 	//if one, duplicate to make 2 symmetric matrices
 	//otherwise output two as expected
-	public void splitMatrices(ArrayList<String> fileLines)
+	private void splitMatrices(ArrayList<String> fileLines)
 	{
-		a1 = new ArrayList();
-		a2 = new ArrayList();
+		a1 = new ArrayList<ArrayList<String>>();
+		a2 = new ArrayList<ArrayList<String>>();
 		boolean bSwitch = false;
 		
 		//loop through all the lines
@@ -114,11 +145,100 @@ public class normalFormToLaTeX
 			//clone is a shallow copy; don't need deep copy here
 			a2 = (ArrayList<ArrayList<String>>)a1.clone();
 			bSinglePayoff = true;
+			bShowBestResponse = false;
+		}
+		
+		this.numCols = a1.get(0).size();
+		this.numRows = a1.size();
+		
+		if (bShowBestResponse) { this.calculateBestResponse(); };
+	}
+	
+	//convert string to double
+	//assumes either integer or fractional entries
+	//does not handle entries with decimal point
+	private double stringToDouble(String s)
+	{
+		double n = 999.999;
+		String[] sFraction;
+		int num;
+		int den;
+		
+		try //process integer
+		{
+			n = (double)Integer.parseInt(s);
+		}
+		catch (NumberFormatException nfe)  //process fraction
+		{
+			Pattern pat = Pattern.compile("/");
+			Matcher m = pat.matcher(s);
+			
+	        if (m.find()) //fractional input
+	        { 
+	        	sFraction = pat.split(s);
+	        	num = Integer.parseInt(sFraction[0]);
+	        	den = Integer.parseInt(sFraction[1]);
+	        	n = ((double)num)/((double)den);
+	        }
+		}
+
+		return n;
+	}
+	
+	private void calculateBestResponse()
+	{
+		double[][] n1 = new double[this.numRows][this.numCols];
+		double[][] n2 = new double[this.numRows][this.numCols];
+		
+		this.br1 = new boolean[this.numRows][this.numCols]; 
+		this.br2 = new boolean[this.numRows][this.numCols];
+		
+		double[] rmax = new double[this.numRows];  //row max values
+		double rtmp;
+		
+		double[] cmax = new double[this.numCols];  //column max values
+		double ctmp;
+		
+		//calculate best responses for first player
+		for(int i=0; i < this.numRows; i++)
+		{
+			rmax[i] = stringToDouble( a2.get(i).get(0) );
+			for(int j = 0; j < this.numCols; j++)
+			{
+				rtmp = stringToDouble( a2.get(i).get(j) );
+				n2[i][j] = rtmp;
+				if (rmax[i] < rtmp ) { rmax[i] = rtmp; }
+			}
+		}
+		
+		//calculate best responses for second player
+		for(int j=0; j < this.numCols; j++)
+		{
+			cmax[j] = stringToDouble( a1.get(0).get(j) );
+			for(int i = 0; i < this.numRows; i++)
+			{
+				ctmp = stringToDouble( a1.get(i).get(j) );
+				n1[i][j] = ctmp;
+				if (cmax[j] < ctmp ) { cmax[j] = ctmp; }
+			}
+		}
+		
+		//store best response (T or F) in array for use in formatting table entry
+		for(int j=0; j < this.numCols; j++)
+		{
+			for(int i = 0; i < this.numRows; i++)
+			{
+				if (n2[i][j] < rmax[i]) { br2[i][j] = false; }
+				else { br2[i][j] = true; }
+				
+				if (n1[i][j] < cmax[j]) { br1[i][j] = false;  }
+				else { br1[i][j] = true; }
+			}
 		}
 	}
 	
 	//take a line of text, tokenize, and return as ArrayList
-	public ArrayList<String> textToArray(String t)
+	private ArrayList<String> textToArray(String t)
 	{
 		StringTokenizer st = new StringTokenizer(t);
 		ArrayList<String> row = new ArrayList<String>();
@@ -132,24 +252,21 @@ public class normalFormToLaTeX
 	
 	//map tokens found in the input file to the bimatrix macro template
 	//improvement: read from file instead of hard-coding 
-	/* \bimatrixgame{4mm}{2}{3}{I}{II}%
-	    {{T}{B}}%
-	    {{l}{c}{r}}
-	    {
-	    \payoffpairs{1}{012}{421}
-	    \payoffpairs{2}{301}{132}
-	    } */
-	public String mapTokensToBMTemplate()
+	// \bimatrixgame{4mm}{2}{3}{I}{II}%
+	//    {{T}{B}}%
+	//    {{l}{c}{r}}
+	//    {
+	//    \payoffpairs{1}{012}{421}
+	//    \payoffpairs{2}{301}{132}
+	//    } 
+	private String mapTokensToBMTemplate()
 	{
-		int numCols = a1.get(0).size();
-		int numRows = a1.size();
-	
 		String s ="\\bimatrixgame{4mm}";
 		s = s + "{" + numRows + "}{" +numCols + "}{I}{II}%\n";
 		
 		//row labels & column labels
-		s = s + this.generateRowLabels(numRows);
-		s = s + this.generateColumnLabels(numCols);
+		s = s + this.generateRowLabels();
+		s = s + this.generateColumnLabels();
 		
 		//payoff pairs
 		s = s + this.generatePayoffPairs();
@@ -181,11 +298,11 @@ public class normalFormToLaTeX
 		}
 	}
 	
-	public String generateRowLabels(int numRows) 
+	private String generateRowLabels() 
 	{
 		 String label;
 		 char chr;
-		 switch (numRows)
+		 switch (this.numRows)
 		 {
 	         case 1:  label = "{{M}}%\n";		break;
 	         case 2:  label = "{{T}{B}}%\n";	break;
@@ -194,7 +311,7 @@ public class normalFormToLaTeX
 	         {
 	        	 label = "{";
 	        	 chr = 97; //97 = ascii 'a' - label cols a, b, c, d, e...etc.
-	        	 for (int i = 97; i < numRows+97; i++)
+	        	 for (int i = 97; i < this.numRows+97; i++)
 	        	 {
 	        		 chr = (char) i;
 	        		 label = label + "{" + chr + "}";
@@ -205,7 +322,7 @@ public class normalFormToLaTeX
 	     return label;
 	}
 	
-	public String generateColumnLabels(int numCols) 
+	private String generateColumnLabels() 
 	{
 		String label;
 		 char chr;
@@ -229,28 +346,28 @@ public class normalFormToLaTeX
 	     return label;
 	}
 	
-	public String generatePayoffPairs() 
+	private String generatePayoffPairs() 
 	{
 		//a1 and a2 are the ArrayLists containing the payoff matrices
 		/* {
 	    \payoffpairs{1}{012}{421}
 	    \payoffpairs{2}{301}{132}
 	    } */
+		boolean bBox = false;
 		String s="{\n";
 		String r="";
 		String strPayoff = "\\payoffpairs{";
-		int numRows = a1.size();
-		int numCols = a1.get(0).size(); 
 		
 		if (bSinglePayoff) {strPayoff = "\\singlepayoffs{"; }
 		
-		for(int i = 0; i < numRows; i++ )
+		for(int i = 0; i < this.numRows; i++ )
 		{
 			r = strPayoff + (i+1) + "}{";
 			
-			for(int j = 0; j < numCols; j++) //player I payoffs
+			for(int j = 0; j < this.numCols; j++) //player I payoffs
 			{
-				r = r + wrapPayoff(a1.get(i).get(j));
+				if (this.bShowBestResponse) { bBox = this.br1[i][j]; }
+				r = r + wrapPayoff(a1.get(i).get(j), bBox);
 			}
 			r = r + "}" ;
 			
@@ -258,9 +375,10 @@ public class normalFormToLaTeX
 			{
 				r = r + "{";
 				
-				for(int j = 0; j < numCols; j++) //player II payoffs
+				for(int j = 0; j < this.numCols; j++) //player II payoffs
 				{
-					r = r + wrapPayoff(a2.get(i).get(j));
+					if (this.bShowBestResponse) { bBox = this.br2[i][j]; }
+					r = r + wrapPayoff(a2.get(i).get(j), bBox);
 				}
 				r = r + "}";
 			}
@@ -271,10 +389,20 @@ public class normalFormToLaTeX
 		return s;
 	}
 	
-	public String wrapPayoff(String p)
+	//at the individual payoff level
+	private String wrapPayoff(String p, boolean bBox)
 	{
-		if (!bPrettyFraction) {p = 	"{$" + p + "$}";}
-		else 
+		String lBox = "";
+		String rBox = "";
+		
+		if (bBox) 
+		{
+			lBox = "{\\fbox ";
+			rBox = "}";
+		}
+		
+		if (!bPrettyFraction) {p = "{$" + p + "$}";}
+		else if (bPrettyFraction)
 		{  
 			boolean bNegFraction = false;
 			
@@ -288,19 +416,22 @@ public class normalFormToLaTeX
 	        	//determine if fraction negative or positive: 
 	        	//		if find one neg sign, and no others, then negative
 	        	if (mneg.find() & !mneg.find()) { bNegFraction = true; }
-	        	p = mneg.replaceAll("");  //eliminate all negative signs, will format at front 
+	        	
+	        	p = mneg.replaceAll("");  //eliminate negative signs, will format at front 
 	        		
 	        	String[] result = pat.split(p);
-
-	        	if (bNegFraction) { p = "{$-\\frac{"+result[0]+"}{"+result[1]+"}$}"; }
-	        	else { p = "{$\\frac{"+result[0]+"}{"+result[1]+"}$}"; }
+	        	
+	        	String negSign = "";
+	        	if (bNegFraction) { negSign = "-"; } 
+	        	
+	        	p = "{$" + negSign + "\\frac{"+result[0]+"}{"+result[1]+"}$}";
 	        }
-	        else {p = 	"{$" + p + "$}";}
+	        else {p = 	"{$" + p + "$}"; }  //not a fraction
 		}
-		return p;
+		return lBox + p + rBox;
 	}
 
-	public ArrayList<ArrayList<String>> arrayToArrayList2D(String[][] s)
+	private ArrayList<ArrayList<String>> arrayToArrayList2D(String[][] s)
 	{
 		ArrayList<ArrayList<String>> al = new ArrayList<ArrayList<String>>();
 		for (int i = 0; i < s.length; i ++)
