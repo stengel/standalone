@@ -6,13 +6,22 @@ Details to be filled in at a later time...
 
 
 Current open questions/gaps/issues
-* Gambit "game name" - not available in gte (although perhaps Alfonso has added this in his branch...?)
+* Gambit "game name" - not available in gte 
+	(although perhaps Alfonso has added this in his branch...?)
 * Gambit node name/label not available in gte UI
 * iset label not available in gte - shows Player identification as label for iset
-* gte expects a completely unique iset number per iset regardless of player, whereas Gambit iset numbers are unique per player, but not across players.  Currently this is handled in the conversion code by creating a unique iset number for gte.  That approach may be fine, but wanted to note the gap.  
+* gte expects a completely unique iset number per iset regardless of player, whereas Gambit
+	 iset numbers are unique per player, but not across players.  Currently this is 
+	handled in the conversion code by creating a unique iset number for gte.  That 
+	approach may be fine, but wanted to note the gap.  
 * gte action labels overlap (already noted by megesdal in gte issues log)
-* gte does not handle payoff at internal node (?); if converting files that have payoffs at internal nodesgame is not represented correctly in gte (internal payoffs are currently ignored)
-* gte does not handle more than 2 players in a seamless way (also noted by megesdal in to-do list); the file will open, and game tree structure is correct, but payoffs are not displayed for third player, identification of player by unique color doesn't work, although the player is labeled correctly.
+* gte does not handle payoff at internal node (?); if converting files that have payoffs at
+	 internal nodesgame is not represented correctly in gte (internal payoffs are 
+	currently ignored)
+* gte does not handle more than 2 players in a seamless way (also noted by megesdal in to-do
+	 list); the file will open, and game tree structure is correct, but payoffs are not
+	 displayed for third player, identification of player by unique color doesn't work, 
+	although the player is labeled correctly.
 
 
 
