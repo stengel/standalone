@@ -24,6 +24,9 @@ Current open questions/gaps/issues
 	although the player is labeled correctly.
 * gte does not handle a move with a blank name, the game tree is not drawn.  Similar/related to
 	issue 6 logged by Karen on megesdal/issues list in github
+* Sequence retains values from previous files in certain (infrequent) situations.  For example, 
+	load ttt.xml file, then nim.xml file.  The ttt sequences are still in the sequence 
+	table below the nim sequences.
 
 
 
