@@ -1,4 +1,4 @@
-/* Last updated June 30, 2011 */
+/* Last updated July 1, 2011 */
 
 /* Comment information regarding .efg file format sourced from 
  * http://www.gambit-project.org/doc/formats.html#file-formats
@@ -262,6 +262,9 @@ public class efgToXML
 		//parse outcome number - integer
 		outcome = tokens1[2].trim();
 		
+		//parse outcome name
+		//need to add this here
+		
 		//parse action list information
 		actionList = this.parseActionList(tokens1[1], "player");
 		
@@ -320,17 +323,19 @@ public class efgToXML
        //outcome name (optional)
        //--skip for now 
 	
-       String move;
+       String move, prob;
        nodeProp m;
        
        try
        {
     	   m = this.nodePropStack.pop();
     	   move = m.move;
+    	   prob = m.prob;
        }
        catch(EmptyStackException e)
        {
     	   move = null;
+    	   prob = null;
        }
        
        Element prevNode = this.calculatePreviousNode();
@@ -361,7 +366,10 @@ public class efgToXML
        }
        else //no payoff, append a standard node
        {
-    	   Element child = this.createXMLNodeNode(nodename, prevNode.getAttribute("player"), move, null, null, null);
+    	   String player = prevNode.getAttribute("player");
+    	   if (player.trim().length() == 0) { player = null; }
+    	   
+    	   Element child = this.createXMLNodeNode(nodename, player, move, prob, null, null);
     	   prevNode.appendChild(child);
 		}
 	}
@@ -487,16 +495,63 @@ public class efgToXML
 		}
 	}
 	
+	private ArrayList<String> extractTokens(String s)
+	{
+		//either the first token in the string is a quoted string
+		// or it is a value offset by spaces
+		ArrayList<String> tokenList = new ArrayList<String>();
+		String token; 
+		s = s.trim();
+		
+		int beginTkn, endTkn;
+		beginTkn = 0;
+		boolean stringToken = false;
+		
+		while (s.length() > 0)
+		{
+			stringToken = false;
+			if (s.charAt(beginTkn) == '\"')
+			{
+				endTkn = s.indexOf("\"", beginTkn + 1) + 1;
+				stringToken = true;
+			}
+			else
+			{
+				endTkn = s.indexOf(" ", beginTkn + 1);
+			}
+			
+			if (endTkn < 0) { endTkn = s.length();  }
+			
+			token = this.removeQuoteMarks(s.substring(beginTkn, endTkn));
+			
+			
+			if (stringToken || token.trim().length() > 0)
+			{
+				tokenList.add(token);  //add any token if enclosed in "" marks, even if blank
+			}
+
+			s = s.substring(endTkn).trim();
+		}
+		
+		return tokenList;
+	}
+	
 	//parse action/probability list
+	//tokenString is the yet to be parsed string
+	//gte does not accept blank move names...need to replace move names with temporary string
 	private ArrayList<nodeProp> parseActionList(String tokenString, String nodeType)
 	{
 		ArrayList<nodeProp> actionList = new ArrayList<nodeProp>();
+		ArrayList<String> tokenList = new ArrayList<String>();
 		String[] tokens;
 		String prob = null;
 		
 		tokenString = tokenString.trim();
-		tokens =  tokenString.split("\"");
-
+		tokenList = this.extractTokens(tokenString);
+		
+		String[] a = {"A"};
+		tokens =  tokenList.toArray(a);
+		
 		int maxSize = tokens.length;
 		
 		if (nodeType.equals("chance"))
@@ -510,15 +565,13 @@ public class efgToXML
 		
 		for (int k = 0; k < maxSize; k++)
 		{
-			if (!(tokens[k].trim().length() == 0))
-			{
-				if (nodeType.equals("chance")) { prob =  tokens[k+1].trim(); }
+			if (tokens[k].trim().length() == 0) { tokens[k] ="TEMP"; }
+			if (nodeType.equals("chance")) { prob =  tokens[k+1].trim(); }
 
-				nodeProp node = new nodeProp(nodeType, this.removeQuoteMarks(tokens[k]), prob);
-				actionList.add(node);
-				
-				if (nodeType.equals("chance")) { k++; }
-			}
+			nodeProp node = new nodeProp(nodeType, this.removeQuoteMarks(tokens[k]), prob);
+			actionList.add(node);
+
+			if (nodeType.equals("chance")) { k++; }
 		}
 		
 		return actionList;
@@ -574,7 +627,7 @@ public class efgToXML
 		String fn = args[0];
 		efgToXML etx = new efgToXML(fn);
 
-		etx.convertEFGtoXML();
+		etx.convertEFGtoXML(); 
 	}
 }
 
