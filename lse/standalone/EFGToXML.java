@@ -7,7 +7,7 @@ package lse.standalone;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
+//import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,7 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.EmptyStackException;
 
-public class efgToXML 
+public class EFGToXML 
 {
 	private Document xmlDoc;
 	private String filename;
@@ -44,7 +44,7 @@ public class efgToXML
 	private HashMap<String, String> isetMap;
 	private int lastIsetNum;
 	
-	public efgToXML(String fn)
+	public EFGToXML(String fn)
 	{
 		this.filename = fn;
 	}
@@ -100,7 +100,7 @@ public class efgToXML
 	{
 		for (int i = 0; i < fileLines.length; i++) 
 		{
-			this.parseEFGLine(fileLines[i], i);
+			this.parseEFGLine(fileLines[i]);
 		}
 		
 		//cleanup expectedChildren node attributes, as they are not part of final xml
@@ -110,7 +110,7 @@ public class efgToXML
 		}
 	}
 	
-	private void parseEFGLine(String line, int lineNumber)
+	private void parseEFGLine(String line)
 	{
 		//Parse Header
 		
@@ -625,7 +625,7 @@ public class efgToXML
 	public static void main (String [] args)
 	{	
 		String fn = args[0];
-		efgToXML etx = new efgToXML(fn);
+		EFGToXML etx = new EFGToXML(fn);
 
 		etx.convertEFGtoXML(); 
 	}
