@@ -1,4 +1,4 @@
-/* Last updated July 1, 2011 */
+/* Last updated August 6, 2011 */
 
 /* Comment information regarding .efg file format sourced from 
  * http://www.gambit-project.org/doc/formats.html#file-formats
@@ -6,11 +6,7 @@
 package lse.standalone;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-//import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.StringWriter;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -25,12 +21,11 @@ import javax.xml.transform.OutputKeys;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Stack;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.EmptyStackException;
 
 public class EFGToXML 
@@ -42,11 +37,29 @@ public class EFGToXML
 	private Stack<Element> prevNodeStack;
 	private Stack<nodeProp> nodePropStack;
 	private HashMap<String, String> isetMap;
+	private HashMap<String, String> moveMap;
 	private int lastIsetNum;
+	private int lastMoveNum;
+	private ConversionUtilities util;
+	private Element root;
+	
+	private boolean testMode = false; 
+	private String dtd; 
 	
 	public EFGToXML(String fn)
 	{
 		this.filename = fn;
+		this.util = new ConversionUtilities();
+	}
+	
+	public void setTestMode(boolean tm)
+	{
+		this.testMode = tm;
+	}
+	
+	public void setDTD(String d)
+	{
+		this.dtd = d;
 	}
 	
 	//create DOM document for XML
@@ -54,20 +67,38 @@ public class EFGToXML
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
+        if(this.testMode) /* Aug 5 */
+        { 
+        	factory.setValidating(true); 
+        	factory.setNamespaceAware(true);
+        } 
         Document doc = builder.newDocument();
         
         Element root = doc.createElement(rootName);
         doc.appendChild(root);
         
+        this.root = root;
+        
+		//add game Description Element - it will be updated with value later
+		Element child = doc.createElement("gameDescription");
+    	root.appendChild(child);
+    	   
+		//add extensiveForm node
+        Element extForm = doc.createElement("extensiveForm");
+        root.appendChild(extForm);
+        
         this.xmlDoc = doc;
         
         this.prevNodeStack = new Stack<Element>();
-        this.prevNodeStack.push(root);
+        this.prevNodeStack.push(extForm);
         
         this.nodePropStack = new Stack<nodeProp>();
         
     	isetMap = new HashMap<String, String>();
-    	this.lastIsetNum = 0;
+    	this.lastIsetNum = 1;
+    	
+    	moveMap = new HashMap<String, String>();
+    	this.lastMoveNum = 1;
 	}
 	
 	private void readEFGFile()
@@ -129,21 +160,27 @@ public class EFGToXML
 	//EFG 2 R "General Bayes game, one stage" { "Player 1" "Player 2" }
 	private ArrayList<String> parseEFGHeader(String line)
 	{
-		String gameName;
+		String gameDescr;
 		ArrayList<String> playerNames;
 		
 		String[] tokens = line.split("\"");
 	
-		//game name - where to use this in gte, or xml file?
-		gameName = tokens[1]; 
+		//game Description
+		gameDescr = tokens[1]; 
+		if (gameDescr.trim().length() > 0)
+		{
+			NodeList gd = this.root.getElementsByTagName("gameDescription");
+			gd.item(0).setTextContent(gameDescr);
+		}
 		
 		playerNames = new ArrayList<String>();
+		int playerPlaceholder = 1;
 		
 		for (int k = 3; k < tokens.length; k = k+2)
 		{
-			if (tokens[k].trim().length() == 0) //skip 'empty' tokens
-			{ 
-				playerNames.add("" + (k-3)); 
+			if (tokens[k].trim().length() == 0)
+			{ //player names are required for gte, prefix with "_" to decrease chance of name collision
+				playerNames.add("_"+playerPlaceholder++); 
 			}
 			else 
 			{ 
@@ -168,45 +205,44 @@ public class EFGToXML
 	*/
 	private void parseEFGChanceNode(String line)
 	{
-		String nodeName, isetName, iset, payoff, outcome;
+		String nodeName, isetName, iset, outcome, outcomeName;
 		ArrayList<nodeProp> actionList;
 		String[] payoffs;
 		
 		String[] tokens1 = line.split("\\{|\\}");  //split the action list from the rest of the line
 		String[] tokens = tokens1[0].split("\""); //split the rest of the line by quotation mark
+		String[] tokens0 = tokens1[2].split("\"");
 
 		//parse node name - string
-		nodeName = this.removeQuoteMarks(tokens[1]);
+		nodeName = util.removeQuoteMarks(tokens[1]);
 		
 		//parse info set number - integer
-		iset = this.getIsetNumber("chance"+tokens[2].trim());
+		String isetKey = "chance"+tokens[2].trim();
+		iset = this.getIsetNumber(isetKey);
 		
 		//parse info set name - string - optional
 		isetName = tokens[3].trim();
 		
 		//outcome
-		outcome = tokens1[2].trim();
+		outcome = tokens0[0].trim();
 		
 		//parse action/probability list
-		actionList = this.parseActionList(tokens1[1], "chance");
+		actionList = this.parseActionList(tokens1[1], "chance", isetKey);
+		
+		//parse outcome name - need to add this here
+		outcomeName = null; 
 		
 		//payoffs
+		ArrayList<String> payoffsList = null;
 		if (tokens1.length > 3) //payoffs are included for the node
 		{
+			outcomeName = tokens0[1]; 
+			
 			payoffs = tokens1[3].split(",|\\s+");  //payoffs can be comma or space delimited
-	
-			for (int i = 0; i < payoffs.length; i++)
-			{
-				payoff = payoffs[i];
-	
-				if (!(payoff.trim().length() == 0)) //if not empty string
-				{
-					//do payoff work here as appropriate
-				}
-			}
+			payoffsList = this.parsePayoffList(payoffs);
 		}
 		
-		this.attachNonTerminalXMLNode(nodeName, null, null, actionList);
+		this.attachNonTerminalXMLNode(nodeName, null, iset, isetName, actionList, outcome, outcomeName, payoffsList);
 	}
 
 	/* Format of personal (player) nodes. Entries for personal player decision 
@@ -224,18 +260,19 @@ public class EFGToXML
 				
 		p "" 1 2 "(1,3)" { "H" "L" } 1 "Outcome 1" { 1/2, 1/2 }
 	 */
-	//For now, assume all elements are there, even if blank (excepting payoffs which are considered optional)
 	private void parseEFGPlayerNode(String line)
 	{
-		String nodeName, player, isetName, iset, isetParsed, payoff, outcome;
+		String nodeName, player, isetName, iset, isetParsed, outcome;
+		String outcomeName = null;
 		ArrayList<nodeProp> actionList;
 		String[] payoffs;
 		
 		String[] tokens1 = line.split("\\{|\\}");  //split the action list from the rest of the line
 		String[] tokens = tokens1[0].split("\""); //split the rest of the line by quotation mark
-
+		String[] tokens0 = tokens1[2].split("\"");
+		
 		//parse node name - string
-		nodeName = this.removeQuoteMarks(tokens[1]);
+		nodeName = util.removeQuoteMarks(tokens[1]);
 		
 		//parse player/owner - integer
 		tokens[2] = tokens[2].trim();
@@ -254,40 +291,33 @@ public class EFGToXML
 		}
 		
 		//parse info set number - integer
-		iset = this.getIsetNumber(player + isetParsed);
+		String isetKey = player + isetParsed;
+		iset = this.getIsetNumber(isetKey);
 		
 		//parse info set name - string
-		isetName = tokens[3];
+		isetName = tokens[3].trim();
+		if (isetName.length() == 0) { isetName = null; }
 		
 		//parse outcome number - integer
-		outcome = tokens1[2].trim();
-		
-		//parse outcome name
-		//need to add this here
+		outcome = tokens0[0].trim(); 
 		
 		//parse action list information
-		actionList = this.parseActionList(tokens1[1], "player");
-		
+		actionList = this.parseActionList(tokens1[1], "player", isetKey);
 
-		//parse payoffs and have outline of logic ready for when gte can accept payoffs at interior nodes
-		//and in the meantime provide an error saying that the efg file cannot be 
-		//entirely represented in gte?
+		ArrayList<String> payoffsList = null;
+
 		if (tokens1.length > 3) //payoffs are included for the node
 		{
+			//parse outcome name - need to add this here
+			outcomeName = tokens0[1]; 
+			if (outcomeName.length() == 0) { outcomeName = null; }
+			
 			payoffs = tokens1[3].split(",|\\s+");  //payoffs can be comma or space delimited
-	
-			for (int i = 0; i < payoffs.length; i++)
-			{
-				payoff = payoffs[i];
-	
-				if (!(payoff.trim().length() == 0)) //if not empty string
-				{
-					//do payoff work here as appropriate
-				}
-			}
+			payoffsList = this.parsePayoffList(payoffs);
 		}
-       
-		this.attachNonTerminalXMLNode(nodeName, player, iset, actionList);
+       /* private void attachNonTerminalXMLNode(String nodename, String player, String iset, String isetname, ArrayList<nodeProp> actionList, 
+			String outcomeName, String payoff) */
+		this.attachNonTerminalXMLNode(nodeName, player, iset, isetName, actionList, outcome, outcomeName, payoffsList);
 	}
 	
 	/* Format of terminal nodes. Entries for terminal nodes begin with the character t . 
@@ -303,11 +333,11 @@ public class EFGToXML
 	*/
 	private void parseEFGTerminalNode(String line)
 	{
-       String payoff, nodename, outcomeValue;
+       String payoff, nodename, outcomeValue, outcomeName;
        String[] payoffs;
        int playerNum = 0;
        
-       String[] tokens1 = line.split("\\{|\\}");  //split the action list from the rest of the line
+       String[] tokens1 = line.split("\\{|\\}");  //split the payoff list from the rest of the line
 		
        String[] tokens = tokens1[0].split("\""); //split the rest of the line by quotation mark
 		
@@ -316,12 +346,12 @@ public class EFGToXML
 		
        //handle node name
        nodename = tokens[1].trim();
-		
+
        //outcome integer
        outcomeValue = tokens[2].trim();
 		
        //outcome name (optional)
-       //--skip for now 
+       outcomeName = null;
 	
        String move, prob;
        nodeProp m;
@@ -343,7 +373,10 @@ public class EFGToXML
 		
        if (openBracketLoc >= 0) //a payoff exists
        {
-    	   Element child = this.createXMLOutcomeNode(move, null, null);
+    	   outcomeName = tokens[3];
+    	   if (outcomeName.length() == 0) { outcomeName = null; }
+    	   
+    	   Element child = this.createXMLOutcomeNode(move, prob, nodename, outcomeValue, outcomeName);
     	   prevNode.appendChild(child);
 			
     	   Element outcome = child;
@@ -369,9 +402,9 @@ public class EFGToXML
     	   String player = prevNode.getAttribute("player");
     	   if (player.trim().length() == 0) { player = null; }
     	   
-    	   Element child = this.createXMLNodeNode(nodename, player, move, prob, null, null);
+    	   Element child = this.createXMLOutcomeNode(move, prob, nodename, outcomeValue, null);
     	   prevNode.appendChild(child);
-		}
+		} 
 	}
 	
 	private Element createXMLPayoffNode(String player, String value)
@@ -379,41 +412,59 @@ public class EFGToXML
 		//if the parent of this node is not an outcome node, add an outcome node
 		Element child = this.xmlDoc.createElement("payoff");
         child.setAttribute("player", player);
-        child.setAttribute("value", value);
-        
+        child.setTextContent(value);
         return child;
 	}
 	
-	private Element createXMLOutcomeNode(String move, String prob, String iset)
+	private Element createXMLOutcomeNode(String move, String prob, String nodename, String outcome, String outcomeName)
 	{
 		Element child = this.xmlDoc.createElement("outcome");
 		if (move != null) { child.setAttribute("move", move); }
         if (prob != null) { child.setAttribute("prob", prob); }
-        if (iset != null) { child.setAttribute("iset", iset); }
+		if (nodename != null && nodename.trim().length() > 0) 
+		{ 
+			child.setAttribute("nodeName", nodename); 
+		}
+        if (outcome != null) 
+        { 
+        	if (!("0".equals(outcome))) { child.setAttribute("outcomeId", outcome); }
+        }
+        if (outcomeName != null) { child.setAttribute("outcomeName", outcomeName); }
         
         return child;
 	}
 	
-	private Element createXMLNodeNode(String nodename, String player, String move, String prob, String iset, String expectedChildren)
+	private Element createXMLNodeNode(String nodename, String player, String move, String prob, String iset, 
+				String isetName, String outcome, String outcomeName, String expectedChildren)
 	{
 		Element child = this.xmlDoc.createElement("node");
-		if (nodename != null) { child.setAttribute("nodename", nodename); }
+		if (nodename != null && nodename.trim().length() > 0) 
+		{ 
+			child.setAttribute("nodeName", nodename); 
+		}
 		if (player != null) { child.setAttribute("player", player); }
 		if (move != null) { child.setAttribute("move", move); }
         if (prob != null) { child.setAttribute("prob", prob); }
         if (iset != null) { child.setAttribute("iset", iset); }
+        if (isetName != null) { child.setAttribute("isetName", isetName); }
+        if (outcome != null) 
+        { 
+        	if (!("0".equals(outcome))) { child.setAttribute("outcomeId", outcome); }
+        }
+        if (outcomeName != null) { child.setAttribute("outcomeName", outcomeName); }
         if (expectedChildren != null) {child.setAttribute("expectedChildren", expectedChildren) ; }
         
         return child;
 	}
 	
-	private void attachNonTerminalXMLNode(String nodename, String player, String iset, ArrayList<nodeProp> actionList)
+	private void attachNonTerminalXMLNode(String nodename, String player, String iset, String isetname, ArrayList<nodeProp> actionList, 
+			String outcome, String outcomeName, ArrayList<String> payoffList)
 	{
 		nodeProp m;
 		String move, prob; 
 	       
 		try
-		{
+		{  //remember move and probability belong to parent node, whereas other attr belongs to self
 			m = this.nodePropStack.pop();
 			move = m.move;
 			prob = m.prob;
@@ -424,12 +475,28 @@ public class EFGToXML
 			prob = null;
 		}
 
-		Element child = this.createXMLNodeNode(nodename, player, move, prob, iset, ""+ actionList.size());
+		Element child = this.createXMLNodeNode(nodename, player, move, prob, iset, isetname, outcome, outcomeName, ""+ actionList.size());
 
 		Element prevNode = this.calculatePreviousNode();
 	       
 		prevNode.appendChild(child);
 		prevNodeStack.push(child);
+		
+		if (payoffList != null)
+		{ 
+		   int playerNum = 0;	 
+		   for (int i = 0; i < payoffList.size(); i++)
+	  	   {
+	  		   String payoff = payoffList.get(i).trim();
+	
+	  		   if (!(payoff.length() == 0))
+	  		   {
+	  			   Element payoffNode = this.createXMLPayoffNode(this.playerNames.get(playerNum), payoff);
+	  			   child.appendChild(payoffNode);
+	  			   playerNum++;
+	  		   }
+	  	   }
+		}
 
 		this.pushReversedList(actionList, this.nodePropStack);
 	}
@@ -444,7 +511,17 @@ public class EFGToXML
         	if (prevNode.getTagName().equals("extensiveForm") ) { break; }
         	
 	        int expectedChildren = Integer.parseInt(prevNode.getAttribute("expectedChildren"));
-	        int currChildren = prevNode.getChildNodes().getLength();
+	        
+	        //find out the count of child Nodes that are not "payoff"
+	        NodeList children = prevNode.getChildNodes();
+	        int currChildren = 0;
+	        for (int i = 0; i < children.getLength(); i++)
+	        {
+	        	if (!("payoff".equals(children.item(i).getNodeName())))
+	        	{
+	        		currChildren++;
+	        	}
+	        }
 	        
 	        if (currChildren == expectedChildren)
 	        {
@@ -467,17 +544,21 @@ public class EFGToXML
 		try 
 		{
 			//create DOM document for XML
-			this.createXMLDocument("extensiveForm");
+			this.createXMLDocument("gte");
 
 			//Assemble XML by reading file and parsing into appropriate elements
 			this.readEFGFile();
 			this.parseEFGFile();
 			
 			//Transform XML
+			//<!DOCTYPE extensiveForm SYSTEM "extensiveForm.dtd">
 			TransformerFactory factory = TransformerFactory.newInstance();
             Transformer trans = factory.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "yes");
-            
+            if(testMode)
+            {    
+            	trans.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, this.dtd);
+            }
             StringWriter sw = new StringWriter();
             StreamResult result = new StreamResult(sw);
             DOMSource source = new DOMSource(this.xmlDoc);
@@ -485,9 +566,8 @@ public class EFGToXML
             String xmlString = result.getWriter().toString();
 
             //print xml, each element on a separate line
-            //System.out.println(xmlString); 
             String outFile = this.filename.substring(0, filename.length() - 4) + ".xml";
-            this.createXMLFile(outFile, xmlString);
+            util.createFile(outFile, xmlString);
 		}
 		catch(Exception e)
 		{
@@ -495,51 +575,27 @@ public class EFGToXML
 		}
 	}
 	
-	private ArrayList<String> extractTokens(String s)
+	private ArrayList<String> parsePayoffList(String[] payoffs)
 	{
-		//either the first token in the string is a quoted string
-		// or it is a value offset by spaces
-		ArrayList<String> tokenList = new ArrayList<String>();
-		String token; 
-		s = s.trim();
+		String payoff;
+		ArrayList<String> payoffList = new ArrayList<String>();
 		
-		int beginTkn, endTkn;
-		beginTkn = 0;
-		boolean stringToken = false;
-		
-		while (s.length() > 0)
+		for (int i = 0; i < payoffs.length; i++)
 		{
-			stringToken = false;
-			if (s.charAt(beginTkn) == '\"')
-			{
-				endTkn = s.indexOf("\"", beginTkn + 1) + 1;
-				stringToken = true;
-			}
-			else
-			{
-				endTkn = s.indexOf(" ", beginTkn + 1);
-			}
-			
-			if (endTkn < 0) { endTkn = s.length();  }
-			
-			token = this.removeQuoteMarks(s.substring(beginTkn, endTkn));
-			
-			
-			if (stringToken || token.trim().length() > 0)
-			{
-				tokenList.add(token);  //add any token if enclosed in "" marks, even if blank
-			}
+			payoff = payoffs[i];
 
-			s = s.substring(endTkn).trim();
+			if (!(payoff.trim().length() == 0)) //if not empty string
+			{
+				payoffList.add(payoff);
+			}
 		}
-		
-		return tokenList;
+		return payoffList;
 	}
 	
 	//parse action/probability list
 	//tokenString is the yet to be parsed string
-	//gte does not accept blank move names...need to replace move names with temporary string
-	private ArrayList<nodeProp> parseActionList(String tokenString, String nodeType)
+	//gte does not accept blank move names...need to make sure move attr is populated
+	private ArrayList<nodeProp> parseActionList(String tokenString, String nodeType, String isetKey)
 	{
 		ArrayList<nodeProp> actionList = new ArrayList<nodeProp>();
 		ArrayList<String> tokenList = new ArrayList<String>();
@@ -547,7 +603,7 @@ public class EFGToXML
 		String prob = null;
 		
 		tokenString = tokenString.trim();
-		tokenList = this.extractTokens(tokenString);
+		tokenList = util.extractTokens(tokenString);
 		
 		String[] a = {"A"};
 		tokens =  tokenList.toArray(a);
@@ -565,10 +621,13 @@ public class EFGToXML
 		
 		for (int k = 0; k < maxSize; k++)
 		{
-			if (tokens[k].trim().length() == 0) { tokens[k] ="TEMP"; }
+			if (tokens[k].trim().length() == 0) //need to create a move identifier
+			{   //add EFG prefix to decrease chance of collision with existing move id
+				tokens[k] = "EFG" + this.getMoveNumber(""+k+isetKey); 
+			}
 			if (nodeType.equals("chance")) { prob =  tokens[k+1].trim(); }
 
-			nodeProp node = new nodeProp(nodeType, this.removeQuoteMarks(tokens[k]), prob);
+			nodeProp node = new nodeProp(nodeType, util.removeQuoteMarks(tokens[k]), prob);
 			actionList.add(node);
 
 			if (nodeType.equals("chance")) { k++; }
@@ -587,31 +646,8 @@ public class EFGToXML
 		}
 	}
 	
-	public void createXMLFile(String name, String contents)
-	{
-		try 
-		{
-		    BufferedWriter out = new BufferedWriter(new FileWriter(name));
-		    out.write(contents);
-		    out.close();
-		} 
-		catch (IOException e) 
-		{
-			//throw exception if can't create file
-		}
-	}
-	
-	private String removeQuoteMarks(String q)
-	{
-		Pattern pat = Pattern.compile("\"");
-		Matcher m = pat.matcher(q);
-
-        return m.replaceAll("");
-	}
-	
 	private String getIsetNumber(String isetKey)
 	{
-		//String isetKey = "chance"+tokens[2].trim();
 		String iset = isetMap.get(isetKey);
 		if (iset == null)
 		{
@@ -620,6 +656,19 @@ public class EFGToXML
 		}
 		
 		return iset;
+	}
+	
+	private String getMoveNumber(String isetKey)
+	{
+		String move = moveMap.get(isetKey);
+		
+		if (move == null)
+		{
+			move = ""+this.lastMoveNum++;
+			moveMap.put(isetKey, move);
+		}
+		
+		return move;
 	}
 
 	public static void main (String [] args)
@@ -643,6 +692,5 @@ class nodeProp
 		this.type = t;
 		this.move = m;
 		this.prob = p;
-		//this.iset = i;
 	}
 }

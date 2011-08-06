@@ -1,4 +1,4 @@
-/* Last updated July 17, 2011 */
+/* Last updated August 6, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -12,12 +12,14 @@ import org.w3c.dom.NodeList;
 public class XMLToNFG 
 {
 	private String nfgString;
-	private String gameName = "\"My untitled game - temporary!\"";
+	private String gameDescription="\"\"";
 	private ConversionUtilities util;
 	private ArrayList<String> playerNames;
 	private HashMap<String, ArrayList<String>> playerStrategies;
+	private ArrayList<String> numPlayerStrategies;
 	private HashMap<String, String> playerPayoffs;
 	private String filename;
+	private boolean outcomeFormat = true; //outcome or payoff format for the output
 
 	
 	public XMLToNFG(String fn)
@@ -25,6 +27,7 @@ public class XMLToNFG
 		this.util = new ConversionUtilities();
 		this.playerNames = new ArrayList<String>();
 		this.playerStrategies = new HashMap<String, ArrayList<String>>();
+		this.numPlayerStrategies = new ArrayList<String>();
 		this.playerPayoffs = new HashMap<String, String>();
 		this.filename = fn;
 	}
@@ -33,12 +36,14 @@ public class XMLToNFG
 	{
 		ArrayList<String> players = this.getPlayerNames();
 		
-		this.nfgString = "NFG 1 R " + this.gameName + " \n";
+		this.nfgString = "NFG 1 R " + this.gameDescription + " \n";
 		this.nfgString += this.formatPlayerData(players);
 		this.nfgString += this.formatStrategyData();
-		this.nfgString += this.formatPayoffData();
 		
-		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + ".nfg";
+		if (!outcomeFormat) {  this.nfgString += this.formatPayoffData();  }
+		else { this.nfgString += this.formatOutcomeData();  } 
+		
+		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + "_out.nfg";
 		
 		util.createFile(outFile, this.nfgString);
 	}
@@ -55,26 +60,52 @@ public class XMLToNFG
 		return result + "}";
 	}
 	
+	private void readStrategicForm(Node stratForm)
+	{
+		String gameSize = util.getAttribute(stratForm, "size");
+		gameSize = gameSize.replace("}", "");
+		gameSize = gameSize.replace("{", "").trim();
+		
+		String[] strategies = gameSize.split("\\s+");
+		
+		for(int i = 0; i < strategies.length; i++)
+		{
+			this.numPlayerStrategies.add(strategies[i].trim());
+		}
+		
+		for (Node child = stratForm.getFirstChild(); child != null; child =  child.getNextSibling()) 
+		{
+			if ("strategy".equals(child.getNodeName())) 
+			{
+				processStrategy((Element)child);
+			} 
+			else if ("payoffs".equals(child.getNodeName())) 
+			{
+				processPayoff((Element)child);
+			} 
+			else 
+			{
+				//unknown element - update handling
+			}
+		} 
+	}
+	
 	public void readXML(String filename)
 	{
 		Document xml = util.fileToXML(filename);
 		
 		Element root = (Element)xml.getFirstChild();
-		if ("strategicForm".equals(xml.getFirstChild().getNodeName())) 
-		{			
+		if ("gte".equals(root.getNodeName())) 
+		{
 			for (Node child = root.getFirstChild(); child != null; child =  child.getNextSibling()) 
 			{
-				if ("strategy".equals(child.getNodeName())) 
+				if ("gameDescription".equals(child.getNodeName()))
 				{
-					processStrategy((Element)child);
-				} 
-				else if ("payoff".equals(child.getNodeName())) 
-				{
-					processPayoff((Element)child);
-				} 
-				else 
-				{
-					//unknown element - update handling
+					this.gameDescription = "\"" + child.getTextContent() + "\"";
+				}
+				if ("strategicForm".equals(child.getNodeName())) 
+				{	
+					this.readStrategicForm(child);
 				}
 			}
 		}
@@ -92,7 +123,7 @@ public class XMLToNFG
 		
 		this.addPlayerName(playerName);
 		
-		this.playerPayoffs.put(playerName, value.trim()); /**/
+		this.playerPayoffs.put(playerName, value.trim()); 
 	}
 	
 	private void processStrategy(Node node)
@@ -103,7 +134,6 @@ public class XMLToNFG
 		
 		this.addPlayerName(playerName);
 
-		//parse the value into the strategy arraylist
 		value = value.replace("}", "");
 		value = value.replace("{", "");
 		
@@ -116,20 +146,36 @@ public class XMLToNFG
  	private String formatStrategyData()
 	{
  		ArrayList<String> players = this.getPlayerNames();
- 		String result = " { ";
+ 		String result = "\n\n{ ";
+ 		boolean stratAvailable = false;
  		
-		//move this to a format method instead of here to match format player & format payoff
 		for (int i = 0; i < players.size(); i++)
 		{
-			result += "{ ";
 			ArrayList<String> strat = this.getPlayerStrategiesByName(players.get(i));
-			for (int j = 0; j < strat.size(); j++)
+			if (strat != null)
 			{
-				result = result + "\"" + strat.get(j)+"\" ";
+				stratAvailable = true;
+				result += "{ ";
+				for (int j = 0; j < strat.size(); j++)
+				{
+					result = result + "\"" + strat.get(j)+"\" ";
+				}
+				result += "}\n";
 			}
-			result += " }";
 		}
-		result += " }" ;
+		result += "}" ;
+		
+		if (!stratAvailable)
+		{	
+			result = "\n{ ";
+			
+			for (int i = 0; i<players.size(); i++)
+			{
+				result += this.numPlayerStrategies.get(i) +" ";
+			}
+			
+			result += "}";
+		}
 		
 		return result;
 	} 
@@ -148,17 +194,71 @@ public class XMLToNFG
 			allPayoffs.add(pp);
 		}
 		
-		int numPayoffs = allPayoffs.get(0).length;
-		
-		for (int j = 0; j < numPayoffs; j++ )
+		int totalResponses = allPayoffs.get(0).length;
+		int col = Integer.parseInt(this.numPlayerStrategies.get(1));  //player 2 determines number of columns
+		int row = Integer.parseInt(this.numPlayerStrategies.get(0));
+		int matSize = row * col;  //size of payoff matrix 
+
+		for (int t = 0; t < totalResponses; t += matSize)
 		{
-			for (int i = 0; i < players.size(); i++)
+			for (int r = 0; r < col; r++)
 			{
-				result = result + allPayoffs.get(i)[j] +" ";
-			}//split the line at a convenient place to avoid a super long line of text
-		} 
+				for (int c = 0; c < matSize; c += col)
+				{
+					for (int i = 0; i < players.size(); i++)
+					{
+						result = result + allPayoffs.get(i)[t+r+c] + " ";
+					}
+				}
+				result += "\n";
+			}
+		}
 		
 		return result;
+	} 
+	
+	private String formatOutcomeData()
+	{
+		ArrayList<String> players = this.getPlayerNames();
+		ArrayList<String[]> allPayoffs = new ArrayList<String[]>();
+		
+		for (int i = 0; i<players.size(); i++)
+		{
+			String p = this.getPlayerPayoffsByName(players.get(i));
+			String[] pp = p.split("\\s+");
+			allPayoffs.add(pp);
+		}
+		
+		String result = "\n\n{\n";
+		
+		int totalResponses = allPayoffs.get(0).length;
+		int col = Integer.parseInt(this.numPlayerStrategies.get(1));  //player 2 determines number of columns
+		int row = Integer.parseInt(this.numPlayerStrategies.get(0));
+		int matSize = row * col;  //size of payoff matrix 
+		int outcomeOrder = 1;
+		String orderString = "";
+
+		for (int t = 0; t < totalResponses; t += matSize)
+		{
+			for (int r = 0; r < col; r++)
+			{
+				for (int c = 0; c < matSize; c += col)
+				{
+					result += "{ \"\" ";
+					for (int i = 0; i < players.size(); i++)
+					{
+						result += allPayoffs.get(i)[t+r+c] + ", ";
+					}
+					result = result.substring(0, result.length()-2);
+					result += " }\n";
+					orderString += outcomeOrder++ + " ";
+				}
+			}
+		}
+		result += "}\n" + orderString;
+		
+		
+		return result ;
 	} 
 	
 	private ArrayList<String> getPlayerNames()

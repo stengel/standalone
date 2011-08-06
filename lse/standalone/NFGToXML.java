@@ -1,4 +1,4 @@
-/* Last updated July 17, 2011 */
+/* Last updated August 6, 2011 */
 package lse.standalone;
 
 import java.io.BufferedReader;
@@ -19,20 +19,25 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 public class NFGToXML 
 {
 	private Document xmlDoc;
 	private StringBuffer buffer;
 	private Element root;
+	private Element stratForm;
 	private String filename;
 	private int linePosition;
-	private String gameName;
+	private String gameDescription;
 	private ArrayList<String> playerNames;
 	private ArrayList<String> numPlayerStrategies;
 	private ArrayList<ArrayList<String>> playerStrategies;
 	private ArrayList<ArrayList<String>> playerPayoffs;
 	private ConversionUtilities util;
+	
+	private boolean testMode = false;
+	private String dtd;
 	
 	public NFGToXML(String fn)
 	{
@@ -45,16 +50,38 @@ public class NFGToXML
 		this.util = new ConversionUtilities();
 	}
 	
+	
+	public void setTestMode(boolean tm)
+	{
+		this.testMode = tm;
+	}
+	
+	public void setDTD(String d)
+	{
+		this.dtd = d;
+	}
+	
 	//create DOM document for XML
 	private void createXMLDocument(String rootName) throws ParserConfigurationException
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setValidating(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
+        if(this.testMode) /* Aug 5 */
+        { 
+        	factory.setValidating(true); 
+        	factory.setNamespaceAware(true);
+        } 
         Document doc = builder.newDocument();
         
         this.root = doc.createElement(rootName);
-        doc.appendChild(root);
+        doc.appendChild(this.root);
+        
+		Element child = doc.createElement("gameDescription");
+    	this.root.appendChild(child);  //value will be added later
+    	   
+        this.stratForm = doc.createElement("strategicForm");
+        this.root.appendChild(this.stratForm);
         
         this.xmlDoc = doc;
 	}
@@ -81,7 +108,7 @@ public class NFGToXML
 		}
 	}
 	
-	private void processGameName()
+	private void processGameDescription()
 	{
 		int beginIndex, endIndex;
 		
@@ -92,7 +119,10 @@ public class NFGToXML
 			endIndex = this.buffer.indexOf("\"", beginIndex+1);
 			
 			this.linePosition = endIndex;
-			this.gameName = this.buffer.substring(beginIndex+1, endIndex);
+			this.gameDescription = this.buffer.substring(beginIndex+1, endIndex);
+			
+			NodeList gd = this.root.getElementsByTagName("gameDescription");
+			gd.item(0).setTextContent(this.gameDescription);
 		}
 	}
 	
@@ -112,6 +142,15 @@ public class NFGToXML
 		else
 		{
 			//error!
+		}
+		
+		//handle blank names; blank names not allowed in gte
+		for (int i = 0; i < this.playerNames.size(); i++)
+		{
+			if (this.playerNames.get(i).trim().length() < 1)
+			{
+				this.playerNames.set(i, "_Player " + (i+1));
+			}
 		}
 	}
 	
@@ -150,7 +189,7 @@ public class NFGToXML
 		{
 			String strat = util.arrayListToBracketList(this.playerStrategies.get(i));
 			Element child = createXMLStrategyNode(this.playerNames.get(i), strat);
-			this.root.appendChild(child);
+			this.stratForm.appendChild(child);
 		}
 	}
 	
@@ -243,7 +282,9 @@ public class NFGToXML
 			//error
 		}
 		
-		String outcomesString = this.buffer.substring(beginIndex+1, endIndex-1).trim();
+
+		//String outcomesString = this.buffer.substring(beginIndex+1, endIndex-1).trim();
+		String outcomesString = this.buffer.substring(beginIndex+1, endIndex).trim();
 		String[] outcomes = outcomesString.split("\\}\\s*\\{");
 		
 		//get outcomes mapping
@@ -264,8 +305,13 @@ public class NFGToXML
 				//error
 			}
 			
-			payoffString = outcomes[i].substring(endIndex);
-			String[] payoffs = payoffString.split(",");
+			int t = Integer.parseInt(mapping[i]) - 1;  	
+			payoffString = outcomes[t].substring(endIndex);
+			payoffString = payoffString.replace("\"", "");
+			payoffString = payoffString.replace(",", "").trim();
+			
+			//String[] payoffs = payoffString.split(","); 
+			String[] payoffs = payoffString.split("\\s+");
 			int numPlayers = this.playerNames.size();
 			
 			//move this to somewhere else for increased efficiency...but create here for now
@@ -285,9 +331,8 @@ public class NFGToXML
 
 			for (int j = 0; j < payoffs.length; j++)
 			{
-				int t = Integer.parseInt(mapping[i]) - 1;
-				String p = payoffs[j];
-				this.playerPayoffs.get(j).set(t, p);
+				//String p = payoffs[j];
+				this.playerPayoffs.get(j).set(i, payoffs[j].trim());
 			}
 		}
 		this.processPayoffLine();
@@ -303,7 +348,7 @@ public class NFGToXML
 	private void parseNFGFile()
 	{
 		//extract game name
-		this.processGameName();
+		this.processGameDescription();
 		
 		//extract player names
 		this.processPlayerNames();
@@ -316,21 +361,33 @@ public class NFGToXML
 		
 		//attach size of game attribute
 		String gameSize = util.arrayListToBracketList(this.numPlayerStrategies);
-		this.root.setAttribute("size", gameSize); 
+		this.stratForm.setAttribute("size", gameSize); 
 	}
 	
 	private void parseStrategyNames(String line)
 	{
+		line = line.replace("{", "");
+		line = line.replace("}", "");
+		line = line.trim();
 		//may need to revisit this split to account for empty names
-		String[] tokens = line.split("\\{|\\}|\"\\s+\"|\"");
+		//String[] tokens = line.split("\\{|\\}|\"\\s+\"|\"");
+		String[] tokens = line.split("\"\\s+\"");
 		
 		ArrayList<String> stratNames = new ArrayList<String>();
 		
+		int placeholder = 1;
+		
 		for(int i = 0; i < tokens.length; i++)
 		{
+			tokens[i] = tokens[i].replace("\"", "");
 			if (! (tokens[i].trim().length() == 0))
 			{
 				stratNames.add("\""+tokens[i]+"\"");
+			}
+			else
+			{   //for consistency of behavior, fill in blank strategy with placeholder
+				stratNames.add("\"_" + placeholder +"\"");
+				placeholder++;
 			}
 		}
 		
@@ -366,47 +423,39 @@ public class NFGToXML
 		for (int j = 0; j < this.playerNames.size(); j++ )
 		{
 			Element child = createXMLPayoffNode(this.playerNames.get(j), createPayoffMatrix(this.playerPayoffs.get(j)));
-			this.root.appendChild(child);
+			this.stratForm.appendChild(child);
 		}
 	}
 	
 	private String createPayoffMatrix(ArrayList<String> payoffs)
 	{
-		int numPlayers = this.playerNames.size();
-		
 		int totalResponses = payoffs.size();
-		boolean processed = false; //keep track of adding newlines, add only when adding content
-		int i = 0;
 		String temp = "";
 		
-		//TODO: here we are going through the loop extra times at the end, should fix for efficiency
-		while ( i < totalResponses)
+		int col = Integer.parseInt(this.numPlayerStrategies.get(1)); //player 2 determines number of columns
+		int row = Integer.parseInt(this.numPlayerStrategies.get(0));
+		int matSize = row * col;  //size of matrix 
+		
+		for (int t = 0; t < totalResponses; t += matSize)
 		{
-			for(int j = 0; j < numPlayers - 1; j++)
+			for (int r = 0; r < row; r++)
 			{
-				int numStrat = Integer.parseInt(this.numPlayerStrategies.get(j));
-
-				for (int k = 0; (i+k < totalResponses)  && (i < numStrat); k = k+numStrat)
+				for (int c = 0; c < matSize; c += row)
 				{
-					temp = temp + " " + payoffs.get(i+k);
-					processed = true;
+					//int kmb = t + r + c;
+					temp = temp + " " + payoffs.get(t + r + c);
+					//System.out.println("index: " + kmb);
 				}
-				i++;
-				
-				if (processed) 
-				{ 
-					temp = temp + (char)10; 
-					processed = false;
-				}
+				temp += "\n";
 			}
 		}
-		return temp;
 
+		return temp;
 	}
 	
 	private Element createXMLPayoffNode(String player, String payoff)
 	{
-		Element child = this.xmlDoc.createElement("payoff");
+		Element child = this.xmlDoc.createElement("payoffs");
         child.setAttribute("player", player);
 		child.appendChild(this.xmlDoc.createTextNode(payoff));
 		
@@ -427,7 +476,7 @@ public class NFGToXML
 		try 
 		{
 			//create DOM document for XML
-			this.createXMLDocument("strategicForm");
+			this.createXMLDocument("gte");
 
 			//Assemble XML by reading file and parsing into appropriate elements
 			this.readNFGFile();
@@ -437,6 +486,10 @@ public class NFGToXML
 			TransformerFactory factory = TransformerFactory.newInstance();
             Transformer trans = factory.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "yes");
+            if(this.testMode)
+            {
+            	trans.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, this.dtd);
+            }
             
             StringWriter sw = new StringWriter();
             StreamResult result = new StreamResult(sw);
@@ -455,7 +508,7 @@ public class NFGToXML
 	
 	public static void main (String [] args)
 	{	
-		String fn = args[0];
+	    String fn = args[0];
 		NFGToXML ntx = new NFGToXML(fn);
 
 		ntx.convertNFGToXML();
