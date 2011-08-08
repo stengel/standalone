@@ -1,0 +1,27 @@
+<!ELEMENT gte (gameDescription, (extensiveForm|strategicForm))>
+<!ELEMENT gameDescription (#PCDATA)>
+<!ELEMENT extensiveForm (node|outcome)>
+<!ELEMENT node (node|outcome|payoff)*>
+<!ELEMENT outcome (payoff*)>
+<!ELEMENT payoff (#PCDATA)>
+<!ELEMENT strategicForm (strategy*, payoffs+)>
+<!ELEMENT strategy (#PCDATA)>
+<!ELEMENT payoffs (#PCDATA)>
+
+<!ATTLIST node prob CDATA #IMPLIED>
+<!ATTLIST node move CDATA #IMPLIED>
+<!ATTLIST node player CDATA #IMPLIED>
+<!ATTLIST node iset CDATA #IMPLIED>
+<!ATTLIST node nodeName CDATA #IMPLIED>
+<!ATTLIST node isetName CDATA #IMPLIED>
+<!ATTLIST node outcomeId CDATA #IMPLIED>
+<!ATTLIST node outcomeName CDATA #IMPLIED>
+<!ATTLIST outcome move CDATA #IMPLIED>
+<!ATTLIST outcome prob CDATA #IMPLIED>
+<!ATTLIST outcome nodeName CDATA #IMPLIED>
+<!ATTLIST outcome outcomeId CDATA #IMPLIED>
+<!ATTLIST outcome outcomeName CDATA #IMPLIED>
+<!ATTLIST payoff player CDATA #REQUIRED>
+<!ATTLIST payoffs player CDATA #REQUIRED>
+<!ATTLIST strategy player CDATA #IMPLIED>
+<!ATTLIST strategicForm size CDATA #REQUIRED>
