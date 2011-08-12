@@ -45,6 +45,7 @@ public class EFGToXML
 	
 	private boolean testMode = false; 
 	private String dtd; 
+	private String version = "0.1";
 	
 	public EFGToXML(String fn)
 	{
@@ -72,22 +73,20 @@ public class EFGToXML
         	factory.setValidating(true); 
         	factory.setNamespaceAware(true);
         } 
-        Document doc = builder.newDocument();
+        this.xmlDoc  = builder.newDocument();
         
-        Element root = doc.createElement(rootName);
-        doc.appendChild(root);
-        
-        this.root = root;
+        this.root = this.xmlDoc.createElement(rootName);
+        this.xmlDoc.appendChild(this.root);
+        this.root.setAttribute("version", this.version);
         
 		//add game Description Element - it will be updated with value later
-		Element child = doc.createElement("gameDescription");
-    	root.appendChild(child);
+		Element child = this.xmlDoc.createElement("gameDescription");
+    	this.root.appendChild(child);
     	   
 		//add extensiveForm node
-        Element extForm = doc.createElement("extensiveForm");
-        root.appendChild(extForm);
+        Element extForm = this.xmlDoc.createElement("extensiveForm");
+        this.root.appendChild(extForm);
         
-        this.xmlDoc = doc;
         
         this.prevNodeStack = new Stack<Element>();
         this.prevNodeStack.push(extForm);
@@ -153,7 +152,6 @@ public class EFGToXML
 		else if (tokens[0].equals("t")) { parseEFGTerminalNode(line); }
 		else if (tokens[0].equals("EFG")) { this.playerNames = parseEFGHeader(line); }
 		else { /* not header, not c p or t, ignore */ }
-		
 	}
 	
 	//Sample header:
@@ -622,8 +620,8 @@ public class EFGToXML
 		for (int k = 0; k < maxSize; k++)
 		{
 			if (tokens[k].trim().length() == 0) //need to create a move identifier
-			{   //add EFG prefix to decrease chance of collision with existing move id
-				tokens[k] = "EFG" + this.getMoveNumber(""+k+isetKey); 
+			{   //add prefix to decrease chance of collision with existing move id
+				tokens[k] = "_" + this.getMoveNumber(""+k+isetKey); 
 			}
 			if (nodeType.equals("chance")) { prob =  tokens[k+1].trim(); }
 

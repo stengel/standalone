@@ -1,11 +1,7 @@
 /* last updated August 3, 2011 */
 package lse.standalone;
 
-import java.io.File;
 import java.util.ArrayList;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -29,26 +25,7 @@ public class XMLToEFG
 		this.gameDescription = "";
 		this.filename = fn;
 	}
-		
-	private Document fileToXML(String filename)
-	{
-		Document doc = null;
-		try 
-		{
-			File file = new File(filename);
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
-			DocumentBuilder db;
-			db = dbf.newDocumentBuilder();
-			doc = db.parse(file);
-		} 
-		catch (Exception e) 
-		{
-			System.out.println("fileToXML: " + e.toString());
-		}
-		
-		return doc;
-	}
 	
 	private void processChildren(Element parent)
 	{
@@ -86,7 +63,7 @@ public class XMLToEFG
 	
 	public void readXML(String filename)
 	{	
-		Document xml = this.fileToXML(filename);
+		Document xml = util.fileToXML(filename);
 		
 		Element root = xml.getDocumentElement();
 		
@@ -401,11 +378,7 @@ public class XMLToEFG
 		String fn = args[0];
 		XMLToEFG xte = new XMLToEFG(fn);
 
-		xte.convertXMLToEFG();
-		
-		//System.out.println("\n" + xte.efgFile);
-		
-	 	
+		xte.convertXMLToEFG();	
 	}
 
 }

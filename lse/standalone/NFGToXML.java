@@ -38,6 +38,7 @@ public class NFGToXML
 	
 	private boolean testMode = false;
 	private String dtd;
+	private String version = "0.1";
 	
 	public NFGToXML(String fn)
 	{
@@ -72,18 +73,17 @@ public class NFGToXML
         	factory.setValidating(true); 
         	factory.setNamespaceAware(true);
         } 
-        Document doc = builder.newDocument();
+        this.xmlDoc = builder.newDocument();
         
-        this.root = doc.createElement(rootName);
-        doc.appendChild(this.root);
+        this.root = this.xmlDoc.createElement(rootName);
+        this.xmlDoc.appendChild(this.root);
+        this.root.setAttribute("version", this.version);
         
-		Element child = doc.createElement("gameDescription");
+		Element child = this.xmlDoc.createElement("gameDescription");
     	this.root.appendChild(child);  //value will be added later
     	   
-        this.stratForm = doc.createElement("strategicForm");
+        this.stratForm = this.xmlDoc.createElement("strategicForm");
         this.root.appendChild(this.stratForm);
-        
-        this.xmlDoc = doc;
 	}
 	
 	private void readNFGFile()
