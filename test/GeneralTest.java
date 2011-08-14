@@ -166,8 +166,8 @@ public class GeneralTest
 	{
 		GeneralTest test = new GeneralTest();
 		test.roundTripNFG();
-		test.allStrategicFilesToXML();
 		test.flatToLaTeX();
+		test.roundTripEFG();
 	}
 	
 }
