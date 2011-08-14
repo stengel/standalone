@@ -4,9 +4,9 @@ import java.io.File;
 
 public class GeneralTest 
 {
-	private String nfgFilePath = "/Users/kbletzer/Documents/Gambit-Code/nfgToXML_test_files";
-	private String efgFilePath = "/Users/kbletzer/Documents/Gambit-Code/efgToXML_test_files";
-	private String latexFilePath = "/Users/kbletzer/Documents/Gambit-Code/strategicToXML_test_files";
+	private String nfgFilePath = "<< fill in path to nfgToXML_test_files >>";
+	private String efgFilePath = "<< fill in path to efgToXML_test_files >>";
+	private String latexFilePath = "<< fill in path to strategicToXML_test_files >>";
 	
 	public void allNFGToXML()
 	{
