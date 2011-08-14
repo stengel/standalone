@@ -1,4 +1,4 @@
-/* last updated August 3, 2011 */
+/* last updated August 13, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -16,6 +16,7 @@ public class XMLToEFG
 	private ConversionUtilities util;
 	private String gameDescription;
 	private int MAX_PLAYERS = 15;
+	private String fileSuffix = ".efg";
 	
 	public XMLToEFG(String fn)
 	{
@@ -24,6 +25,11 @@ public class XMLToEFG
 		this.util = new ConversionUtilities();
 		this.gameDescription = "";
 		this.filename = fn;
+	}
+	
+	public void setFileSuffix(String suffix)
+	{
+		this.fileSuffix = suffix;
 	}
 
 	
@@ -50,14 +56,14 @@ public class XMLToEFG
 			{
 				this.gameDescription = "\"" + child.getTextContent() + "\"";
 			} 
+			if ("players".equals(child.getNodeName()))
+			{
+				this.playerNames = util.readPlayersXML(child);
+			}
 			else if ("extensiveForm".equals(child.getNodeName())) 
 			{
 				this.processChildren((Element)child);
 			} 
-			else 
-			{
-				//unknown element - error handling
-			}
 		}
 	}
 	
@@ -71,12 +77,13 @@ public class XMLToEFG
 		{
 			this.processHeader(root);
 		}
-		else 
-		{
-			//error handling for first element not recognized
-		}
 		
-		String playerList = " " + util.arrayListToBracketList(this.playerNames);
+		String playerList = " { ";
+		for(int i=0; i < this.playerNames.size(); i++)
+		{
+			playerList+= "\"" + this.playerNames.get(i) +"\" ";
+		}
+		playerList += "}";
 		
 		this.efgFile.insert(0, "EFG 2 R " + gameDescription+  playerList + "\n\"\"\n\n");
 	}
@@ -90,12 +97,6 @@ public class XMLToEFG
     		</outcome>
   		</node>
 	</extensiveForm> */
-	/* p "" 1 1 "" { "1" } 0
-	t "" 1 "" { 5, 7 } */
-	/* p "nodename" 2 4 "isetName" { "Action1" "Action2" } 0
-				player infoset							  outcome
-				
-		p "" 1 2 "(1,3)" { "H" "L" } 1 "Outcome 1" { 1/2, 1/2 } */
 	private void processDecisionNode(Node node)
 	{
 		String result="";
@@ -227,11 +228,11 @@ public class XMLToEFG
 		this.addPlayerName(playerName);
 		String playerNumber = this.getPlayerNumber(playerName);
 		
-		String nodename = util.getAttribute(node, "nodename");
+		String nodename = util.getAttribute(node, "nodeName");
 		String iset = util.getAttribute(node, "iset");
 		String isetName = util.getAttribute(node, "isetName");
 		String outcomeNum = util.getAttribute(node, "outcomeId");
-		String outcomeName = util.getAttribute(node, "outcomeName"); /* TO DO FIX*/
+		String outcomeName = util.getAttribute(node, "outcomeName");
 
 		String result = "p ";
 		result += this.addNodeData(nodename, "STRING");
@@ -249,7 +250,7 @@ public class XMLToEFG
 	
 	private String processChanceNode(Node node, ArrayList<String> moves, ArrayList<String> probs)
 	{
-		String nodename = util.getAttribute(node, "nodename");
+		String nodename = util.getAttribute(node, "nodeName");
 		String iset = util.getAttribute(node, "iset");
 		String isetName = util.getAttribute(node, "isetName");
 		String outcomeNum = util.getAttribute(node, "outcomeId");
@@ -281,7 +282,7 @@ public class XMLToEFG
 	private void processOutcome(Node node)
 	{
 		String outcomeName = this.addNodeData(util.getAttribute(node, "outcomeName"), "STRING");
-		String nodeName = this.addNodeData(util.getAttribute(node, "nodename"), "STRING");
+		String nodeName = this.addNodeData(util.getAttribute(node, "nodeName"), "STRING");
 		String outcomeId = this.addNodeData(util.getAttribute(node, "outcomeId"), "NUMBER");
 		
 		String simpleTerminal = "t " + nodeName + outcomeId;
@@ -337,17 +338,17 @@ public class XMLToEFG
 
 	private void addPlayerName(String name)
 	{
-		if (!this.playerNames.contains("\"" + name + "\""))
+		if (!this.playerNames.contains(name))
 		{
-			this.playerNames.add("\"" + name + "\"");
+			this.playerNames.add(name);
 		}
 	}
 	
 	private String getPlayerNumber(String name)
 	{
-		if (this.playerNames.contains("\"" + name + "\""))
+		if (this.playerNames.contains(name))
 		{
-			return "" + (1 + this.playerNames.indexOf("\"" + name + "\""));
+			return "" + (1 + this.playerNames.indexOf(name));
 		}
 		
 		return null;
@@ -355,7 +356,7 @@ public class XMLToEFG
 	
 	public void createEFGFile(String xmlFileName)
 	{
-		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + "_efg.efg";
+		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + this.fileSuffix;
 		
 		util.createFile(outFile, this.efgFile.toString());
 	}

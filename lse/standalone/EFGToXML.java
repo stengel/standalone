@@ -1,6 +1,6 @@
-/* Last updated August 6, 2011 */
+/* Last updated August 13, 2011 */
 
-/* Comment information regarding .efg file format sourced from 
+/* More about the .efg file format can be found at:
  * http://www.gambit-project.org/doc/formats.html#file-formats
  */
 package lse.standalone;
@@ -21,6 +21,7 @@ import javax.xml.transform.OutputKeys;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class EFGToXML
 	private boolean testMode = false; 
 	private String dtd; 
 	private String version = "0.1";
+	private String fileSuffix = ".xml";
 	
 	public EFGToXML(String fn)
 	{
@@ -63,12 +65,17 @@ public class EFGToXML
 		this.dtd = d;
 	}
 	
+	public void setFileSuffix(String suffix)
+	{
+		this.fileSuffix = suffix;
+	}
+	
 	//create DOM document for XML
 	private void createXMLDocument(String rootName) throws ParserConfigurationException
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
-        if(this.testMode) /* Aug 5 */
+        if(this.testMode)
         { 
         	factory.setValidating(true); 
         	factory.setNamespaceAware(true);
@@ -80,8 +87,12 @@ public class EFGToXML
         this.root.setAttribute("version", this.version);
         
 		//add game Description Element - it will be updated with value later
-		Element child = this.xmlDoc.createElement("gameDescription");
-    	this.root.appendChild(child);
+		Element descr = this.xmlDoc.createElement("gameDescription");
+    	this.root.appendChild(descr);
+    	
+		//add players Element - it will be updated with player names later
+		Element players = this.xmlDoc.createElement("players");
+    	this.root.appendChild(players);
     	   
 		//add extensiveForm node
         Element extForm = this.xmlDoc.createElement("extensiveForm");
@@ -121,8 +132,7 @@ public class EFGToXML
         }
 		catch (Exception e)
 		{
-			//better handling?
-			System.out.println("Exception: " + e);
+			System.out.println("EFGToXML Exception: " + e);
 		}
 	}
 	
@@ -142,21 +152,19 @@ public class EFGToXML
 	
 	private void parseEFGLine(String line)
 	{
-		//Parse Header
-		
 		//determine node type and call appropriate parsing logic
 		String[] tokens = line.split("\\s+");
 		
 		if (tokens[0].equals("c")) { parseEFGChanceNode(line); }
 		else if (tokens[0].equals("p")) { parseEFGPlayerNode(line); }
 		else if (tokens[0].equals("t")) { parseEFGTerminalNode(line); }
-		else if (tokens[0].equals("EFG")) { this.playerNames = parseEFGHeader(line); }
+		else if (tokens[0].equals("EFG")) { parseEFGHeader(line); }
 		else { /* not header, not c p or t, ignore */ }
 	}
 	
 	//Sample header:
 	//EFG 2 R "General Bayes game, one stage" { "Player 1" "Player 2" }
-	private ArrayList<String> parseEFGHeader(String line)
+	private void parseEFGHeader(String line)
 	{
 		String gameDescr;
 		ArrayList<String> playerNames;
@@ -186,7 +194,10 @@ public class EFGToXML
 			}
 		}
 		
-		return playerNames;
+		this.playerNames = playerNames;
+		
+		Node players = this.root.getElementsByTagName("players").item(0);
+    	util.updatePlayersNode(this.playerNames, this.xmlDoc, players);
 	}
 	
 	/* Entries for chance nodes begin with the character c. Following this is:
@@ -549,7 +560,6 @@ public class EFGToXML
 			this.parseEFGFile();
 			
 			//Transform XML
-			//<!DOCTYPE extensiveForm SYSTEM "extensiveForm.dtd">
 			TransformerFactory factory = TransformerFactory.newInstance();
             Transformer trans = factory.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -564,7 +574,7 @@ public class EFGToXML
             String xmlString = result.getWriter().toString();
 
             //print xml, each element on a separate line
-            String outFile = this.filename.substring(0, filename.length() - 4) + ".xml";
+            String outFile = this.filename.substring(0, filename.length() - 4) + this.fileSuffix;
             util.createFile(outFile, xmlString);
 		}
 		catch(Exception e)

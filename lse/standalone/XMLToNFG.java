@@ -1,4 +1,4 @@
-/* Last updated August 6, 2011 */
+/* Last updated August 13, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -20,6 +20,7 @@ public class XMLToNFG
 	private HashMap<String, String> playerPayoffs;
 	private String filename;
 	private boolean outcomeFormat = true; //outcome or payoff format for the output
+	private String fileSuffix = ".nfg";
 
 	
 	public XMLToNFG(String fn)
@@ -30,6 +31,17 @@ public class XMLToNFG
 		this.numPlayerStrategies = new ArrayList<String>();
 		this.playerPayoffs = new HashMap<String, String>();
 		this.filename = fn;
+	}
+	
+	public void setNFGFormat(String format)
+	{
+		if (format.equals("outcome")) { this.outcomeFormat = true; }
+		else if (format.equals("payoff")) { this.outcomeFormat = false; }
+	}
+	
+	public void setFileSuffix(String suffix)
+	{
+		this.fileSuffix = suffix;
 	}
 	
 	public void createNFGFile(String xmlFileName)
@@ -43,7 +55,7 @@ public class XMLToNFG
 		if (!outcomeFormat) {  this.nfgString += this.formatPayoffData();  }
 		else { this.nfgString += this.formatOutcomeData();  } 
 		
-		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + "_out.nfg";
+		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + this.fileSuffix;
 		
 		util.createFile(outFile, this.nfgString);
 	}
@@ -83,10 +95,6 @@ public class XMLToNFG
 			{
 				processPayoff((Element)child);
 			} 
-			else 
-			{
-				//unknown element - update handling
-			}
 		} 
 	}
 	
@@ -103,6 +111,10 @@ public class XMLToNFG
 				{
 					this.gameDescription = "\"" + child.getTextContent() + "\"";
 				}
+				if ("players".equals(child.getNodeName()))
+				{
+					this.playerNames = util.readPlayersXML(child);
+				}
 				if ("strategicForm".equals(child.getNodeName())) 
 				{	
 					this.readStrategicForm(child);
@@ -111,7 +123,7 @@ public class XMLToNFG
 		}
 		else 
 		{
-			//error handling - first element not recognized
+			System.out.println("XMLToNFG Error: first XML element not recognized.");
 		}
 	}
 	
@@ -293,7 +305,7 @@ public class XMLToNFG
 		}
 		catch(Exception e)
 		{
-			System.out.println("exception is " + e.toString());
+			System.out.println("XMLToNFG Exception: " + e.toString());
 		}
 	}
 	

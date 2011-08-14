@@ -1,4 +1,4 @@
-/* Last updated July 17, 2011 */
+/* Last updated August 12, 2011 */
 package lse.standalone;
 
 import java.io.BufferedWriter;
@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 public class ConversionUtilities 
@@ -58,7 +59,7 @@ public class ConversionUtilities
 		return tokenList;
 	}
 	
-	private String removeQuoteMarks(String q)
+	public String removeQuoteMarks(String q)
 	{
 		Pattern pat = Pattern.compile("\"");
 		Matcher m = pat.matcher(q);
@@ -126,5 +127,65 @@ public class ConversionUtilities
 		}
 		return doc;
 		
+	}
+	
+	public ArrayList<String> readPlayersXML(Node players)
+	{
+		ArrayList<String> orderedPlayers = new ArrayList<String>();
+		for (Node child = players.getFirstChild(); child != null; child =  child.getNextSibling()) 
+		{
+			if ("player".equals(child.getNodeName())) 
+			{
+				String playerId = getAttribute(child, "playerId");
+				int id = Integer.parseInt(playerId);
+				if (id < orderedPlayers.size()) 
+				{
+					orderedPlayers.add(id-1, child.getTextContent());
+				}
+				else
+				{
+					orderedPlayers.add(child.getTextContent());
+				}
+			} 
+		} 
+		return orderedPlayers;
+	}
+	
+	public Element createPlayersNode(ArrayList<String> players, Document xmlDoc)
+	{
+		Element elPlayers = xmlDoc.createElement("players");
+
+		for (int i = 1; i <= players.size(); i++)
+		{
+		   String playerName = players.get(i-1).trim();
+		   Element child = xmlDoc.createElement("player");
+		   child.setAttribute("playerId", ""+i);
+		   
+		   if (playerName.length() !=0) {  child.setTextContent(playerName); }
+		   else { child.setTextContent(""+i); }
+		   
+		   elPlayers.appendChild(child);
+		}
+		
+		return elPlayers;
+	}
+	
+	public Node updatePlayersNode(ArrayList<String> players, Document xmlDoc, Node elPlayers)
+	{
+		//Element elPlayers = xmlDoc.createElement("players");
+
+		for (int i = 1; i <= players.size(); i++)
+		{
+		   String playerName = players.get(i-1).trim();
+		   Element child = xmlDoc.createElement("player");
+		   child.setAttribute("playerId", ""+i);
+		   
+		   if (playerName.length() !=0) {  child.setTextContent(playerName); }
+		   else { child.setTextContent(""+i); }
+		   
+		   elPlayers.appendChild(child);
+		}
+		
+		return elPlayers;
 	}
 }

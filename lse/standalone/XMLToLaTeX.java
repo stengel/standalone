@@ -1,9 +1,7 @@
 package lse.standalone;
-/* last updated August 10, 2011 */
+/* last updated August 13, 2011 */
 /* only for two players, since can only output two players with LaTeX macro */
 /* game description will not end up getting used */
-/* need to do anything different for singlePayoff? */
-/* carry forward strategy names from the XML, not auto-calculated unless no strategy elements */
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +15,7 @@ import org.w3c.dom.NodeList;
 
 public class XMLToLaTeX 
 {
-	private String gameDescription="\"\"";
+	//private String gameDescription="\"\"";
 	private ConversionUtilities util;
 	private ArrayList<String> playerNames;
 	private HashMap<String, ArrayList<String>> playerStrategies;
@@ -37,6 +35,15 @@ public class XMLToLaTeX
 	private boolean bSinglePayoff = false; //will be updated based on input matrices
 	private boolean bPrettyFraction = true;  //apply additional formatting to fractions - yes or no
 	private boolean bShowBestResponse = true;  //show a box around the best response
+	
+	//default settings for bimatrix LaTeX macro
+	private String rowColor = "Red";
+	private String colColor = "Blue";
+	private String cellSize = "4mm";
+	private String diagSize = "0";
+	private String pairFont = "\\small";
+	private String singleFont = "\\normalsize";
+	private String fileSuffix = ".tex";
 
 	
 	public XMLToLaTeX(String fn, String[] args)
@@ -48,7 +55,12 @@ public class XMLToLaTeX
 		this.playerPayoffs = new HashMap<String, String>();
 		this.filename = fn;
 		
-		this.processFlags(args);
+		//this.processFlags(args);
+	}
+	
+	public void setFileSuffix(String suffix)
+	{
+		this.fileSuffix = suffix;
 	}
 	
 	public void convertXMLToLaTeX()
@@ -60,7 +72,7 @@ public class XMLToLaTeX
 		}
 		catch(Exception e)
 		{
-			System.out.println("exception is " + e.toString());
+			System.out.println("XMLToLaTeX exception: " + e.toString());
 		}
 	}
 	
@@ -75,7 +87,11 @@ public class XMLToLaTeX
 			{
 				if ("gameDescription".equals(child.getNodeName()))
 				{
-					this.gameDescription = "\"" + child.getTextContent() + "\"";
+					//this.gameDescription = "\"" + child.getTextContent() + "\"";
+				}
+				if ("players".equals(child.getNodeName()))
+				{
+					this.playerNames = util.readPlayersXML(child);
 				}
 				if ("strategicForm".equals(child.getNodeName())) 
 				{	
@@ -83,11 +99,15 @@ public class XMLToLaTeX
 					this.numRows = Integer.parseInt(this.numPlayerStrategies.get(0));
 					this.numCols = Integer.parseInt(this.numPlayerStrategies.get(1));
 				}
+				if ("display".equals(child.getNodeName()))
+				{
+					this.readDisplayXML(child);
+				}
 			}
 		}
 		else 
 		{
-			//error handling - first element not recognized
+			System.out.println("XMLToLaTeX error: first XML element not recognized.");
 		}
 	}
 	
@@ -114,9 +134,51 @@ public class XMLToLaTeX
 			{
 				processPayoff((Element)child);
 			} 
-			else 
+		} 
+	}
+	
+	private void readDisplayXML(Node display)
+	{	
+		for (Node child = display.getFirstChild(); child != null; child =  child.getNextSibling()) 
+		{
+			if ("rowColor".equals(child.getNodeName())) 
 			{
-				//unknown element - update handling
+				this.rowColor = child.getTextContent();
+			} 
+			else if ("colColor".equals(child.getNodeName())) 
+			{
+				this.colColor = child.getTextContent();
+			} 
+			else if ("cellSize".equals(child.getNodeName())) 
+			{
+				this.cellSize = child.getTextContent();
+			}
+			else if ("diagSize".equals(child.getNodeName())) 
+			{
+				this.diagSize = child.getTextContent();
+			} 
+			else if ("pairFont".equals(child.getNodeName())) 
+			{
+				this.pairFont = child.getTextContent();
+			} 
+			else if ("singleFont".equals(child.getNodeName())) 
+			{
+				this.singleFont = child.getTextContent();
+			}
+			else if ("prettyFraction".equals(child.getNodeName())) 
+			{
+				if("true".equals(child.getTextContent())) { this.bPrettyFraction = true; }
+				else { this.bPrettyFraction = false; }
+			} 
+			else if ("bestResponse".equals(child.getNodeName())) 
+			{
+				if("true".equals(child.getTextContent())) { this.bShowBestResponse = true; }
+				else { this.bShowBestResponse = false; }
+			} 
+			else if ("singlePayoff".equals(child.getNodeName())) 
+			{
+				if("true".equals(child.getTextContent())) { this.bSinglePayoff = true; }
+				else { this.bSinglePayoff = false; }
 			}
 		} 
 	}
@@ -127,7 +189,8 @@ public class XMLToLaTeX
 		String value = nl.item(0).getNodeValue();
 		String playerName = util.getAttribute(node, "player");
 		
-		this.addPlayerName(playerName);
+		//this call is superfluous if <players> present, but keeping to ensure players populated
+		this.addPlayerName(playerName);  
 		
 		this.playerPayoffs.put(playerName, value.trim()); 
 	}
@@ -174,7 +237,7 @@ public class XMLToLaTeX
 	
 	public void createLaTeXFile(String filename)
 	{
-        String outFile = this.filename.substring(0, filename.length() - 4) + ".tex";
+        String outFile = this.filename.substring(0, filename.length() - 4) + this.fileSuffix;
         util.createFile(outFile, this.getLaTeXString()); 
 	}
 	
@@ -215,7 +278,7 @@ public class XMLToLaTeX
 		if (this.bShowBestResponse & !bSinglePayoff) { this.calculateBestResponse(); }
 		else { this.bShowBestResponse = false; }
 		
-		String s = "\\documentclass{article}\n\\input{gamesty}%\n\\begin{document} \n";
+		String s = "\\documentclass{article}\n\\usepackage{bimatrixgame}\n\\usepackage[usenames]{color}\n\\begin{document} \n";
 		s = s + this.mapTokensToBMTemplate();
 		s =s + "\\end{document} \n";
 		return s;
@@ -232,19 +295,28 @@ public class XMLToLaTeX
 	//    } 
 	private String mapTokensToBMTemplate()
 	{
-		String s ="\\bimatrixgame{4mm}";
-		s = s + "{" + this.numRows + "}{" + this.numCols + "}{I}{II}%\n";
+		String s = "\n";
+		//optional parameters here
+		s += "\\renewcommand{\\bimatrixrowcolor}{" + this.rowColor + "}%\n";
+		s += "\\renewcommand{\\bimatrixcolumncolor}{" + this.colColor +"}%\n";
+		s += "\\renewcommand{\\bimatrixdiag}{" + this.diagSize +"}%\n";
+		
+		if (this.bSinglePayoff) { s += "\\renewcommand{\\bimatrixsinglefont}{" + this.singleFont +"}%\n";  }
+		else { s += "\\renewcommand{\\bimatrixpairfont}{" + this.pairFont +"}%\n"; }
+		
+		s +="\n\\bimatrixgame{" + this.cellSize + "}";
+		s += "{" + this.numRows + "}{" + this.numCols + "}{I}{II}%\n";
 		
 		//row labels & column labels
 		if (this.playerStrategies.isEmpty())
 		{
-			s = s + this.generateRowLabels();
-			s = s + this.generateColumnLabels();
+			s += this.generateRowLabels();
+			s += this.generateColumnLabels();
 		}
 		else  //strategies are listed in the xml
 		{
-			s = s + this.formatStrategyLabels(this.getPlayerStrategiesByNumber(0));
-			s = s + this.formatStrategyLabels(this.getPlayerStrategiesByNumber(1));
+			s += this.formatStrategyLabels(this.getPlayerStrategiesByNumber(0));
+			s += this.formatStrategyLabels(this.getPlayerStrategiesByNumber(1));
 		}
 		
 		//payoff pairs
@@ -309,7 +381,7 @@ public class XMLToLaTeX
 	         }
 		 }
 	     return label;
-	}
+	}	
 	
 	private void calculateBestResponse()
 	{
@@ -472,7 +544,7 @@ public class XMLToLaTeX
 		return n;
 	}
 	
-	private void processFlags(String[] args)
+	/* private void processFlags(String[] args)
 	{
 		for (int i = 1; i < args.length; i++)
 		{
@@ -480,7 +552,7 @@ public class XMLToLaTeX
 			if (args[i].equals("-s")) { this.bSinglePayoff = true; }
 			if (args[i].equals("-b")) { this.bShowBestResponse = false; }
 		}
-	}
+	} */
 	
 	public static void main (String [] args)
 	{	

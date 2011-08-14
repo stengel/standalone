@@ -1,4 +1,4 @@
-/* Last updated August 6, 2011 */
+/* Last updated August 13, 2011 */
 package lse.standalone;
 
 import java.io.BufferedReader;
@@ -19,6 +19,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class NFGToXML 
@@ -35,6 +36,7 @@ public class NFGToXML
 	private ArrayList<ArrayList<String>> playerStrategies;
 	private ArrayList<ArrayList<String>> playerPayoffs;
 	private ConversionUtilities util;
+	private String fileSuffix = ".xml";
 	
 	private boolean testMode = false;
 	private String dtd;
@@ -62,13 +64,18 @@ public class NFGToXML
 		this.dtd = d;
 	}
 	
+	public void setFileSuffix(String suffix)
+	{
+		this.fileSuffix = suffix;
+	}
+	
 	//create DOM document for XML
 	private void createXMLDocument(String rootName) throws ParserConfigurationException
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setValidating(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
-        if(this.testMode) /* Aug 5 */
+        if(this.testMode) 
         { 
         	factory.setValidating(true); 
         	factory.setNamespaceAware(true);
@@ -79,8 +86,12 @@ public class NFGToXML
         this.xmlDoc.appendChild(this.root);
         this.root.setAttribute("version", this.version);
         
-		Element child = this.xmlDoc.createElement("gameDescription");
-    	this.root.appendChild(child);  //value will be added later
+		Element descr = this.xmlDoc.createElement("gameDescription");
+    	this.root.appendChild(descr);  //value will be added later
+    	
+		//add players Element - it will be updated with player names later
+		Element players = this.xmlDoc.createElement("players");
+    	this.root.appendChild(players);
     	   
         this.stratForm = this.xmlDoc.createElement("strategicForm");
         this.root.appendChild(this.stratForm);
@@ -103,8 +114,7 @@ public class NFGToXML
         }
 		catch (Exception e)
 		{
-			//better handling?
-			System.out.println("Exception: " + e);
+			System.out.println("NFGToXML Exception: " + e);
 		}
 	}
 	
@@ -141,7 +151,7 @@ public class NFGToXML
 		}
 		else
 		{
-			//error!
+			System.out.println("NFGToXML Error: problem in processing player names.");
 		}
 		
 		//handle blank names; blank names not allowed in gte
@@ -152,6 +162,9 @@ public class NFGToXML
 				this.playerNames.set(i, "_Player " + (i+1));
 			}
 		}
+		
+		Node players = this.root.getElementsByTagName("players").item(0);
+    	util.updatePlayersNode(this.playerNames, this.xmlDoc, players);
 	}
 	
 	private void processStrategies()
@@ -180,7 +193,7 @@ public class NFGToXML
 		}
 		else
 		{
-			//error!
+			System.out.println("NFGToXML Error: problem in processing strategies.");
 		}
 		
 		int numPlayers = this.playerStrategies.size();
@@ -209,7 +222,7 @@ public class NFGToXML
 		}
 		else
 		{
-			//error
+			System.out.println("NFGToXML Error: problem in processing strategy List.");
 		}
 		
 		//strategy list is substring between beginIndex and endIndex
@@ -237,7 +250,7 @@ public class NFGToXML
 		}
 		else
 		{
-			//error
+			System.out.println("NFGToXML Error: problem in processing strategy counts.");
 		}
 		
 		//strategy list is substring between beginIndex and endIndex
@@ -279,11 +292,9 @@ public class NFGToXML
 		}
 		else
 		{
-			//error
+			System.out.println("NFGToXML Error: problem in outcome payoffs.");
 		}
 		
-
-		//String outcomesString = this.buffer.substring(beginIndex+1, endIndex-1).trim();
 		String outcomesString = this.buffer.substring(beginIndex+1, endIndex).trim();
 		String[] outcomes = outcomesString.split("\\}\\s*\\{");
 		
@@ -302,7 +313,7 @@ public class NFGToXML
 			}
 			else
 			{
-				//error
+				System.out.println("NFGToXML Error: problem in processing outcome mapping.");
 			}
 			
 			int t = Integer.parseInt(mapping[i]) - 1;  	
@@ -310,12 +321,10 @@ public class NFGToXML
 			payoffString = payoffString.replace("\"", "");
 			payoffString = payoffString.replace(",", "").trim();
 			
-			//String[] payoffs = payoffString.split(","); 
 			String[] payoffs = payoffString.split("\\s+");
 			int numPlayers = this.playerNames.size();
 			
-			//move this to somewhere else for increased efficiency...but create here for now
-			//also don't like the way the arraylist needs to be filled, should be a better way
+			//TODO improve this section of code for efficiency
 			if (this.playerPayoffs.size() < numPlayers)
 			{
 				for (int k = 0; k < numPlayers; k++)
@@ -331,7 +340,6 @@ public class NFGToXML
 
 			for (int j = 0; j < payoffs.length; j++)
 			{
-				//String p = payoffs[j];
 				this.playerPayoffs.get(j).set(i, payoffs[j].trim());
 			}
 		}
@@ -369,8 +377,7 @@ public class NFGToXML
 		line = line.replace("{", "");
 		line = line.replace("}", "");
 		line = line.trim();
-		//may need to revisit this split to account for empty names
-		//String[] tokens = line.split("\\{|\\}|\"\\s+\"|\"");
+
 		String[] tokens = line.split("\"\\s+\"");
 		
 		ArrayList<String> stratNames = new ArrayList<String>();
@@ -405,7 +412,7 @@ public class NFGToXML
 		
 		for (int j = 0; j < numPlayers; j++ )
 		{
-			//move this to somewhere else for increased efficiency...but create here for now
+			//TODO improve efficiency of this code - place loop in different location?
 			if (this.playerPayoffs.size() < numPlayers)
 			{
 				this.playerPayoffs.add(new ArrayList<String>());
@@ -442,9 +449,7 @@ public class NFGToXML
 			{
 				for (int c = 0; c < matSize; c += row)
 				{
-					//int kmb = t + r + c;
 					temp = temp + " " + payoffs.get(t + r + c);
-					//System.out.println("index: " + kmb);
 				}
 				temp += "\n";
 			}
@@ -497,7 +502,7 @@ public class NFGToXML
             trans.transform(source, result);
             String xmlString = result.getWriter().toString();
 
-            String outFile = this.filename.substring(0, filename.length() - 4) + ".xml";
+            String outFile = this.filename.substring(0, filename.length() - 4) + this.fileSuffix;
             util.createFile(outFile, xmlString); 
 		}
 		catch(Exception e)
