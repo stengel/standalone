@@ -1,3 +1,4 @@
+/* author: K. Bletzer */
 /* Last updated August 13, 2011 */
 package lse.standalone;
 
@@ -22,6 +23,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/* Takes a file in the Gambit .nfg format and converts the data to 
+ * the version 0.1 gte XML format.
+ * 
+ * Limited error handling as .nfg file is assumed to be a well formatted 
+ * file.
+ */
 public class NFGToXML 
 {
 	private Document xmlDoc;
@@ -42,6 +49,7 @@ public class NFGToXML
 	private String dtd;
 	private String version = "0.1";
 	
+	/* constructor */
 	public NFGToXML(String fn)
 	{
 		this.filename = fn;
@@ -53,17 +61,25 @@ public class NFGToXML
 		this.util = new ConversionUtilities();
 	}
 	
-	
+	/*
+	 * @param tm: true or false.  If test mode is on the dtd will be refernced
+	 * in the output XML and the XML document factory will have setValidating = true
+	 */
 	public void setTestMode(boolean tm)
 	{
 		this.testMode = tm;
 	}
 	
+	/* set the DTD name - only used if class is in test mode */
 	public void setDTD(String d)
 	{
 		this.dtd = d;
 	}
 	
+	/* Change the suffix appended to the file if desired.
+	 * For example, instead of the default .nfg, can append _test.nfg 
+	 * to the file name if required to differentiate files. 
+	 */
 	public void setFileSuffix(String suffix)
 	{
 		this.fileSuffix = suffix;
@@ -97,6 +113,7 @@ public class NFGToXML
         this.root.appendChild(this.stratForm);
 	}
 	
+	/* read file line by line and add lines to the file buffer */
 	private void readNFGFile()
 	{
 		String fileLine;
@@ -118,6 +135,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* read game description and update internal member with value */
 	private void processGameDescription()
 	{
 		int beginIndex, endIndex;
@@ -136,6 +154,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* read player names from NFG header and add to the players list */
 	private void processPlayerNames()
 	{
 		int beginIndex, endIndex;
@@ -167,6 +186,7 @@ public class NFGToXML
     	util.updatePlayersNode(this.playerNames, this.xmlDoc, players);
 	}
 	
+	/* read strategies from file and call for XML processing */
 	private void processStrategies()
 	{
 		//check to see if there is a second { in the line
@@ -206,6 +226,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* process list of strategies if they exist */
 	private void processStrategyList(int beginIndex)
 	{
 		//find location of }}
@@ -236,6 +257,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* process information regarding strategy counts */
 	private void processStrategyCounts(int beginIndex)
 	{
 		int endIndex = 0;
@@ -264,6 +286,9 @@ public class NFGToXML
 		}
 	}
 	
+	/* process payoff information - payoffs are either formatted as "outcomes"
+	 * or "payoff" pairs based on nfg file formats.
+	 */
 	private void processPayoffs()
 	{
 		int endIndex=0;
@@ -279,6 +304,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* process payoffs of type outcome */
 	private void processOutcomePayoffs(int beginIndex, int endIndex)
 	{
 		String payoffString;
@@ -346,6 +372,7 @@ public class NFGToXML
 		this.processPayoffLine();
 	}
 	
+	/* process payoffs of type payoff pairs */
 	private void processPayoffPairs(int beginIndex, int endIndex)
 	{
 		String payoffString = this.buffer.substring(this.linePosition, this.buffer.length());
@@ -353,6 +380,7 @@ public class NFGToXML
 		this.processPayoffLine();
 	}
 	
+	/* step through NFG file picking up and parsing inforamtion in order */
 	private void parseNFGFile()
 	{
 		//extract game name
@@ -372,6 +400,7 @@ public class NFGToXML
 		this.stratForm.setAttribute("size", gameSize); 
 	}
 	
+	/* tokenize and process strategy names */
 	private void parseStrategyNames(String line)
 	{
 		line = line.replace("{", "");
@@ -402,6 +431,7 @@ public class NFGToXML
 		this.playerStrategies.add(stratNames);
 	}
 	
+	/* tokenize and process payoff values */
 	private void parsePayoffLine(String line)
 	{
 		//need to know the number of strategies per player
@@ -425,6 +455,8 @@ public class NFGToXML
 		}
 	}
 	
+	/* take payoff information and match with players in order to create the payoff matrices
+	 * and XML elements */
 	private void processPayoffLine()
 	{
 		for (int j = 0; j < this.playerNames.size(); j++ )
@@ -434,6 +466,7 @@ public class NFGToXML
 		}
 	}
 	
+	/* take a single list of payoffs and format to a matrix format (2D) format */
 	private String createPayoffMatrix(ArrayList<String> payoffs)
 	{
 		int totalResponses = payoffs.size();
@@ -458,6 +491,7 @@ public class NFGToXML
 		return temp;
 	}
 	
+	/* create XML node for payoff info */
 	private Element createXMLPayoffNode(String player, String payoff)
 	{
 		Element child = this.xmlDoc.createElement("payoffs");
@@ -467,6 +501,7 @@ public class NFGToXML
         return child;
 	}
 	
+	/* create XML node for strategy info */
 	private Element createXMLStrategyNode(String player, String strategy)
 	{
 		Element child = this.xmlDoc.createElement("strategy");
@@ -476,6 +511,7 @@ public class NFGToXML
         return child;
 	}
 	
+	/* main class method to drive conversion from nfg to xml */
 	public void convertNFGToXML()
 	{
 		try 

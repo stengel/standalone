@@ -1,3 +1,4 @@
+/* author: K. Bletzer */
 /* Last updated August 13, 2011 */
 
 /* More about the .efg file format can be found at:
@@ -29,6 +30,12 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.EmptyStackException;
 
+/* Takes a file in the Gambit .efg format and converts the data to 
+ * the version 0.1 gte XML format.
+ * 
+ * Limited error handling as .efg file is assumed to be a well formatted 
+ * file.
+ */
 public class EFGToXML 
 {
 	private Document xmlDoc;
@@ -49,22 +56,32 @@ public class EFGToXML
 	private String version = "0.1";
 	private String fileSuffix = ".xml";
 	
+	/* constructor */
 	public EFGToXML(String fn)
 	{
 		this.filename = fn;
 		this.util = new ConversionUtilities();
 	}
 	
+	/*
+	 * @param tm: true or false.  If test mode is on the dtd will be refernced
+	 * in the output XML and the XML document factory will have setValidating = true
+	 */
 	public void setTestMode(boolean tm)
 	{
 		this.testMode = tm;
 	}
 	
+	/* set the DTD name - only used if class is in test mode */
 	public void setDTD(String d)
 	{
 		this.dtd = d;
 	}
 	
+	/* Change the suffix appended to the file if desired.
+	 * For example, instead of the default .tex, can append _test.tex 
+	 * to the file name if required to differentiate files. 
+	 */
 	public void setFileSuffix(String suffix)
 	{
 		this.fileSuffix = suffix;
@@ -98,7 +115,9 @@ public class EFGToXML
         Element extForm = this.xmlDoc.createElement("extensiveForm");
         this.root.appendChild(extForm);
         
-        
+        //this stack keeps track of the nodes in order to place the internal
+        //nodes of the tree source from the .efg file under the correct parent
+        //
         this.prevNodeStack = new Stack<Element>();
         this.prevNodeStack.push(extForm);
         
@@ -111,6 +130,7 @@ public class EFGToXML
     	this.lastMoveNum = 1;
 	}
 	
+	/* read the contents of the input file and place each line in an ArrayList */
 	private void readEFGFile()
 	{
 		String fileLine;
@@ -136,6 +156,7 @@ public class EFGToXML
 		}
 	}
 	
+	/* walk through each line in the file and call a function to begin the processing */
 	private void parseEFGFile()
 	{
 		for (int i = 0; i < fileLines.length; i++) 
@@ -150,6 +171,7 @@ public class EFGToXML
 		}
 	}
 	
+	/* take a given line from the file and process it according to the line type */
 	private void parseEFGLine(String line)
 	{
 		//determine node type and call appropriate parsing logic
@@ -162,7 +184,8 @@ public class EFGToXML
 		else { /* not header, not c p or t, ignore */ }
 	}
 	
-	//Sample header:
+	//parse the efg file header line; 
+	//Sample header line:
 	//EFG 2 R "General Bayes game, one stage" { "Player 1" "Player 2" }
 	private void parseEFGHeader(String line)
 	{
@@ -263,10 +286,8 @@ public class EFGToXML
 	-- (optional) a list of action names for the information set
 	-- a nonnegative integer specifying the outcome
 	-- (optional) the payoffs to each player for the outcome
-	Example:
+	Examples:
 		p "nodename" 2 4 "isetName" { "Action1" "Action2" } 0
-				player infoset							  outcome
-				
 		p "" 1 2 "(1,3)" { "H" "L" } 1 "Outcome 1" { 1/2, 1/2 }
 	 */
 	private void parseEFGPlayerNode(String line)
@@ -324,8 +345,7 @@ public class EFGToXML
 			payoffs = tokens1[3].split(",|\\s+");  //payoffs can be comma or space delimited
 			payoffsList = this.parsePayoffList(payoffs);
 		}
-       /* private void attachNonTerminalXMLNode(String nodename, String player, String iset, String isetname, ArrayList<nodeProp> actionList, 
-			String outcomeName, String payoff) */
+
 		this.attachNonTerminalXMLNode(nodeName, player, iset, isetName, actionList, outcome, outcomeName, payoffsList);
 	}
 	
@@ -336,7 +356,7 @@ public class EFGToXML
 	-- a string specifying the name of the outcome
 	-- the payoffs to each player for the outcome (optional); can have comma or space separation
 	
-	Example:
+	Examples:
 		t "s4" 4 "?" { 10, 1 }
 		t "" 0
 	*/
@@ -416,6 +436,7 @@ public class EFGToXML
 		} 
 	}
 	
+	/* Create an XML payoff node which may be attached to a node anywhere */
 	private Element createXMLPayoffNode(String player, String value)
 	{
 		//if the parent of this node is not an outcome node, add an outcome node
@@ -425,6 +446,7 @@ public class EFGToXML
         return child;
 	}
 	
+	/* Create an XML Outcome node */
 	private Element createXMLOutcomeNode(String move, String prob, String nodename, String outcome, String outcomeName)
 	{
 		Element child = this.xmlDoc.createElement("outcome");
@@ -443,6 +465,7 @@ public class EFGToXML
         return child;
 	}
 	
+	/* Create an xml "node" representing an internal node in the game tree */
 	private Element createXMLNodeNode(String nodename, String player, String move, String prob, String iset, 
 				String isetName, String outcome, String outcomeName, String expectedChildren)
 	{
@@ -466,6 +489,10 @@ public class EFGToXML
         return child;
 	}
 	
+	/* link a non-terminal node to the document, and handle the parent node stack
+	 * in order to track the list of parent nodes that still need children to be 
+	 * created and attached.
+	 */
 	private void attachNonTerminalXMLNode(String nodename, String player, String iset, String isetname, ArrayList<nodeProp> actionList, 
 			String outcome, String outcomeName, ArrayList<String> payoffList)
 	{
@@ -510,6 +537,9 @@ public class EFGToXML
 		this.pushReversedList(actionList, this.nodePropStack);
 	}
 	
+	/* Based on current node calculate previous parent node in order to use for further
+	 * decisions and/or processing in other methods.
+	 */
 	private Element calculatePreviousNode()
 	{
 		Element prevNode = (Element) this.prevNodeStack.peek();
@@ -548,6 +578,7 @@ public class EFGToXML
 		return prevNode;
 	}
 	
+	/* main class method that initiates conversion activities */
 	public void convertEFGtoXML()
 	{
 		try 
@@ -583,6 +614,7 @@ public class EFGToXML
 		}
 	}
 	
+	/* Transform payoffs of the form String array to ArrayList */
 	private ArrayList<String> parsePayoffList(String[] payoffs)
 	{
 		String payoff;
@@ -644,6 +676,7 @@ public class EFGToXML
 		return actionList;
 	}
 	
+	/* when adding moves to the list of nodes to be processed, need to add in reverse order */
 	private void pushReversedList(ArrayList<nodeProp> al, Stack<nodeProp> s)
 	{
 		int listSize = al.size();
@@ -654,6 +687,9 @@ public class EFGToXML
 		}
 	}
 	
+	/* generate a unique iset number if required, otherwise find number used
+	 * by an existing node in the same iset
+	 */
 	private String getIsetNumber(String isetKey)
 	{
 		String iset = isetMap.get(isetKey);
@@ -666,6 +702,8 @@ public class EFGToXML
 		return iset;
 	}
 	
+	/* generate a unique move number if move number from file is blank
+	 */
 	private String getMoveNumber(String isetKey)
 	{
 		String move = moveMap.get(isetKey);

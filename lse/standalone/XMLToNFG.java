@@ -1,3 +1,4 @@
+/* author: K. Bletzer */
 /* Last updated August 13, 2011 */
 package lse.standalone;
 
@@ -9,6 +10,10 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/* takes an XML file that conforms to the gte v0.1 XML specification
+ * and convert the data to Gambit .nfg format.  The format may either be
+ * "outcome" format (default) or "payoff" format based on chosen setting.  
+ */
 public class XMLToNFG 
 {
 	private String nfgString;
@@ -22,7 +27,7 @@ public class XMLToNFG
 	private boolean outcomeFormat = true; //outcome or payoff format for the output
 	private String fileSuffix = ".nfg";
 
-	
+	/* constructor */
 	public XMLToNFG(String fn)
 	{
 		this.util = new ConversionUtilities();
@@ -33,17 +38,25 @@ public class XMLToNFG
 		this.filename = fn;
 	}
 	
+	/* set format for nfg output */
 	public void setNFGFormat(String format)
 	{
 		if (format.equals("outcome")) { this.outcomeFormat = true; }
 		else if (format.equals("payoff")) { this.outcomeFormat = false; }
 	}
 	
+	/* Change the suffix appended to the file if desired.
+	 * For example, instead of the default .tex, can append _test.tex 
+	 * to the file name if required to differentiate files. 
+	 */
 	public void setFileSuffix(String suffix)
 	{
 		this.fileSuffix = suffix;
 	}
 	
+	/* begins the process of creating the nfg file by creating the header and 
+	 * calling other methods to complete the work 
+	 */
 	public void createNFGFile(String xmlFileName)
 	{
 		ArrayList<String> players = this.getPlayerNames();
@@ -60,6 +73,7 @@ public class XMLToNFG
 		util.createFile(outFile, this.nfgString);
 	}
 	
+	/* Change player data from ArrayList to String format */
 	private String formatPlayerData(ArrayList<String> players)
 	{
 		String result = "{ ";
@@ -72,6 +86,7 @@ public class XMLToNFG
 		return result + "}";
 	}
 	
+	/* reads data from strategic form XML and process */
 	private void readStrategicForm(Node stratForm)
 	{
 		String gameSize = util.getAttribute(stratForm, "size");
@@ -98,6 +113,9 @@ public class XMLToNFG
 		} 
 	}
 	
+	/* reads XML document at the "header" level and requests other methods
+	 * to continue reading child information.
+	 */
 	public void readXML(String filename)
 	{
 		Document xml = util.fileToXML(filename);
@@ -127,6 +145,7 @@ public class XMLToNFG
 		}
 	}
 	
+	/* reads payoff information from the XML and places in internal class storage */
 	private void processPayoff(Node node)
 	{
 		NodeList nl = node.getChildNodes();
@@ -138,6 +157,7 @@ public class XMLToNFG
 		this.playerPayoffs.put(playerName, value.trim()); 
 	}
 	
+	/* reads strategy information from the XML and places in internal class storage */
 	private void processStrategy(Node node)
 	{
 		NodeList nl = node.getChildNodes();
@@ -155,6 +175,7 @@ public class XMLToNFG
 		this.playerStrategies.put(playerName, strategies);
 	}
 	
+	/* formats strategy data for output to nfg file */
  	private String formatStrategyData()
 	{
  		ArrayList<String> players = this.getPlayerNames();
@@ -192,6 +213,7 @@ public class XMLToNFG
 		return result;
 	} 
 	
+ 	/* takes payoff information and formats for nfg file, in payoff format */
 	private String formatPayoffData()
 	{
 		ArrayList<String> players = this.getPlayerNames();
@@ -229,6 +251,8 @@ public class XMLToNFG
 		return result;
 	} 
 	
+	
+ 	/* takes payoff information and formats for nfg file, in outcmoe format */
 	private String formatOutcomeData()
 	{
 		ArrayList<String> players = this.getPlayerNames();
@@ -273,21 +297,25 @@ public class XMLToNFG
 		return result ;
 	} 
 	
+	/* retrieves player names in order */
 	private ArrayList<String> getPlayerNames()
 	{
 		return this.playerNames;
 	}
 	
+	/* retrieves player's strategies given a player's name */
 	private ArrayList<String> getPlayerStrategiesByName(String playerName)
 	{
 		return this.playerStrategies.get(playerName);
 	}
 	
+	/* retrieves player's payoffs given a player's name */
 	private String getPlayerPayoffsByName(String playerName)
 	{
 		return this.playerPayoffs.get(playerName);
 	} 
 	
+	/* add player name to list, checking for duplicates first */
 	private void addPlayerName(String name)
 	{
 		if (!this.playerNames.contains(name))
@@ -296,6 +324,7 @@ public class XMLToNFG
 		}
 	}
 	
+	/* main method that initiations conversion from XML format to NFG format */
 	public void convertXMLToNFG()
 	{
 		try 

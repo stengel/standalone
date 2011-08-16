@@ -1,3 +1,4 @@
+/* author: K. Bletzer */
 /* last updated August 13, 2011 */
 package lse.standalone;
 
@@ -8,6 +9,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/* takes an XML file that conforms to the gte v0.1 XML specification
+ * and convert the data to Gambit .efg format.
+ */
 public class XMLToEFG 
 {
 	private ArrayList<String> playerNames;
@@ -18,6 +22,7 @@ public class XMLToEFG
 	private int MAX_PLAYERS = 15;
 	private String fileSuffix = ".efg";
 	
+	/* constructor */
 	public XMLToEFG(String fn)
 	{
 		this.playerNames = new ArrayList<String>();
@@ -27,12 +32,16 @@ public class XMLToEFG
 		this.filename = fn;
 	}
 	
+	/* Change the suffix appended to the file if desired.
+	 * For example, instead of the default .tex, can append _test.tex 
+	 * to the file name if required to differentiate files. 
+	 */
 	public void setFileSuffix(String suffix)
 	{
 		this.fileSuffix = suffix;
 	}
 
-	
+	/* process node or outcome XML nodes */
 	private void processChildren(Element parent)
 	{
 		for (Node child = parent.getFirstChild(); child != null; child =  child.getNextSibling()) 
@@ -48,6 +57,7 @@ public class XMLToEFG
 		}
 	}
 	
+	/* process XML header information such as game description and players */
 	private void processHeader(Element root)
 	{
 		for (Node child = root.getFirstChild(); child != null; child =  child.getNextSibling()) 
@@ -67,6 +77,7 @@ public class XMLToEFG
 		}
 	}
 	
+	/* initial processing of the XML file */
 	public void readXML(String filename)
 	{	
 		Document xml = util.fileToXML(filename);
@@ -89,6 +100,7 @@ public class XMLToEFG
 	}
 	
 	
+	//processing a decision node, which may be similar to the following:
 	/*<extensiveForm>
  		<node player="1">
     		<outcome move="0:0">
@@ -136,6 +148,7 @@ public class XMLToEFG
 		return result;
 	}
 	
+	/* process the node actions for a decision node by looping through the node's children */
 	private ArrayList<String> processNodeActions(Node node)
 	{
 		ArrayList<String> moveList = new ArrayList<String>();
@@ -158,6 +171,7 @@ public class XMLToEFG
 		return moveList;
 	}
 	
+	/* process the node probabilities by looping through the children of the current node */
 	private ArrayList<String> processNodeProbs(Node node)
 	{
 		ArrayList<String> probList = new ArrayList<String>();
@@ -184,6 +198,7 @@ public class XMLToEFG
 		return probList;
 	}
 	
+	/* extract payoff information from an internal node and format for efg file */
 	private String processInternalPayoff(Node node, String outcomeName)
 	{
 		String result = "";
@@ -222,6 +237,8 @@ public class XMLToEFG
 		return result;
 	}
 	
+	/* extract relevant decision node information from node and children (moves)
+	 *  and format for efg file */
 	private String processPlayerNode(Node node, ArrayList<String> moves)
 	{
 		String playerName = util.getAttribute(node, "player");
@@ -248,6 +265,8 @@ public class XMLToEFG
 		return result;
 	}
 	
+	/* extract relevant chance node and children (prob and move) information
+	 *  and format for efg file */
 	private String processChanceNode(Node node, ArrayList<String> moves, ArrayList<String> probs)
 	{
 		String nodename = util.getAttribute(node, "nodeName");
@@ -277,8 +296,7 @@ public class XMLToEFG
 		return result.trim();
 	}
 	
-	//t "" 1 "" { 5, 7 }
-	//t "" 0
+	/* process outcome node information and format for efg file */
 	private void processOutcome(Node node)
 	{
 		String outcomeName = this.addNodeData(util.getAttribute(node, "outcomeName"), "STRING");
@@ -320,6 +338,7 @@ public class XMLToEFG
 		this.efgFile.append("\n");
 	}
 	
+	/* format a string of payoffs to a comma separated list for efg file */
 	private String processEFGPayoff(String[] al)
 	{
 		String result = "";
@@ -336,6 +355,7 @@ public class XMLToEFG
 		return result;
 	}
 
+	/* adds player name taking into account duplicates */
 	private void addPlayerName(String name)
 	{
 		if (!this.playerNames.contains(name))
@@ -344,6 +364,7 @@ public class XMLToEFG
 		}
 	}
 	
+	/* gets a player's id given their name */
 	private String getPlayerNumber(String name)
 	{
 		if (this.playerNames.contains(name))
@@ -354,6 +375,7 @@ public class XMLToEFG
 		return null;
 	}
 	
+	/* create the efg file leveraging the utility class */
 	public void createEFGFile(String xmlFileName)
 	{
 		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + this.fileSuffix;
@@ -361,6 +383,7 @@ public class XMLToEFG
 		util.createFile(outFile, this.efgFile.toString());
 	}
 	
+	/* main method that organizes conversion tasks */
 	public void convertXMLToEFG()
 	{
 		try 

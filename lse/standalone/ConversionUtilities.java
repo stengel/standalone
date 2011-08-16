@@ -1,3 +1,4 @@
+/* author: K. Bletzer */
 /* Last updated August 12, 2011 */
 package lse.standalone;
 
@@ -18,10 +19,18 @@ import org.w3c.dom.Node;
 
 public class ConversionUtilities 
 {
+
+	/* take a string and tokenize using string manipulation and 
+	 * knowledge about string format: 		
+	 * either the first token in the string is a quoted string
+	 * or it is a value offset by spaces.
+	 *
+	 * @param s - string to tokenize
+	 * @return - a list of tokens extracted from input string s
+	 */
 	public ArrayList<String> extractTokens(String s)
 	{
-		//either the first token in the string is a quoted string
-		// or it is a value offset by spaces
+
 		ArrayList<String> tokenList = new ArrayList<String>();
 		String token; 
 		s = s.trim();
@@ -46,7 +55,6 @@ public class ConversionUtilities
 			if (endTkn < 0) { endTkn = s.length();  }
 			
 			token = this.removeQuoteMarks(s.substring(beginTkn, endTkn));
-			//token = s.substring(beginTkn, endTkn);
 			
 			if (stringToken || token.trim().length() > 0)
 			{
@@ -59,6 +67,9 @@ public class ConversionUtilities
 		return tokenList;
 	}
 	
+	/* remove the beginning and end quotation marks from a string
+	 * if they are present.
+	 */
 	public String removeQuoteMarks(String q)
 	{
 		Pattern pat = Pattern.compile("\"");
@@ -67,6 +78,7 @@ public class ConversionUtilities
         return m.replaceAll("");
 	}
 	
+	/* Convenience method for pretty printing the contents of a string array */
 	public void printStringArray(String[] s)
 	{
 		for(int i =0; i < s.length; i++)
@@ -75,6 +87,7 @@ public class ConversionUtilities
 		}
 	} 
 	
+	/* Convenience method for formatting an ArrayList for output */
 	public String arrayListToBracketList(ArrayList<String> al)
 	{
 		String s = al.toString();
@@ -94,11 +107,12 @@ public class ConversionUtilities
 		} 
 		catch (IOException e) 
 		{
-			//throw exception if can't create file
+			System.out.println("ConversionUtilities Exception: " +e.toString());
 		}
 	}
 	
-	/* note - from function of same name in ExtensiveFormXMLReader */
+	/* Extract an attribute from an Element/Node */
+	/* Based on similar function in gte ExtensiveFormXMLReader */
 	public String getAttribute(Node elem, String key)
 	{
 		String value = null;
@@ -109,6 +123,7 @@ public class ConversionUtilities
 		return value;
 	}
 	
+	/* read an xml file and create corresponding XML document */
 	public Document fileToXML(String filename)
 	{
 		Document doc = null;
@@ -129,6 +144,9 @@ public class ConversionUtilities
 		
 	}
 	
+	/* read the <players> XML element and create an ArrayList representing
+	 * the ordered set of players.
+	 */
 	public ArrayList<String> readPlayersXML(Node players)
 	{
 		ArrayList<String> orderedPlayers = new ArrayList<String>();
@@ -151,6 +169,9 @@ public class ConversionUtilities
 		return orderedPlayers;
 	}
 	
+	/* create the <players> XML node in the Document xmlDoc
+	 * based on a list of players provided to the function.
+	 */
 	public Element createPlayersNode(ArrayList<String> players, Document xmlDoc)
 	{
 		Element elPlayers = xmlDoc.createElement("players");
@@ -170,6 +191,9 @@ public class ConversionUtilities
 		return elPlayers;
 	}
 	
+	/* update an already existing <players> XML node in the Document xmlDoc
+	 * with the list of players provided to the function.
+	 */
 	public Node updatePlayersNode(ArrayList<String> players, Document xmlDoc, Node elPlayers)
 	{
 		//Element elPlayers = xmlDoc.createElement("players");

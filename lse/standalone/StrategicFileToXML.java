@@ -1,5 +1,6 @@
-package lse.standalone;
+/* author: K. Bletzer */
 /* last updated August 13, 2011 */
+package lse.standalone;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,6 +21,14 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+/* A strategic form flat file is a file with one or two matrices.
+ * Each row of a matrix is separated from the next by a newline.
+ * Two matrices are separated by a blank line.
+ * 
+ * This class takes such a file as an input and transforms the 
+ * matrices into an XML structure suitable for consumption by the 
+ * gte tool.
+ */
 public class StrategicFileToXML 
 {
 	private String a1 = "";
@@ -42,7 +51,10 @@ public class StrategicFileToXML
 	private String dtd;
 	private String fileSuffix = ".xml";
 	
-	/* constructor - by file which defines matrices */
+	/* Constructor
+	 * @param fn: the filename for the file that contains the matrices to be used in constructing
+	 * the xml.
+	 */
 	public StrategicFileToXML(String fn)
 	{
 		filename = fn;
@@ -51,27 +63,51 @@ public class StrategicFileToXML
 		this.fileLines = new ArrayList<String>();
 	}
 	
+	
+	/*
+	 * @param fn: filename to change the file that is being converted.
+	 */
 	public void setFilename(String fn)
 	{
 		filename = fn;
 	}
 	
+	/*
+	 * @param tm: true or false.  If test mode is on the dtd will be refernced
+	 * in the output XML and the XML document factory will have setValidating = true
+	 */
 	public void setTestMode(boolean tm)
 	{
 		this.testMode = tm;
 	}
 	
+	/*
+	 * @param d: the dtd file name; used only in test mode
+	 */
 	public void setDTD(String d)
 	{
 		this.dtd = d;
 	}
 	
+	/* Change the suffix appended to the file if desired.
+	 * For example, instead of the default .tex, can append _test.tex 
+	 * to the file name if required to differentiate files. 
+	 */ 
 	public void setFileSuffix(String suffix)
 	{
 		this.fileSuffix = suffix;
 	}
 	
-	//create DOM document for XML
+	
+	/* create DOM document for building XML; initialize relevant XML root "handles"
+	 * to be used in the creation of child elements.
+	 * If the class is set to testMode = true then the document will contain a
+	 * reference to the DTD for validation purposes.  TestMode should be false
+	 * for conversion in non-test circumstances.
+	 * 
+	 * @param rootName - the XML root element
+	 * @throws ParserConfigurationException
+	 */
 	private void createXMLDocument(String rootName) throws ParserConfigurationException
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -109,6 +145,9 @@ public class StrategicFileToXML
         this.xmlDoc = doc;
 	}
 	
+	/* main public method that coordinates the conversion of flat file matrices
+	 * to gte strategic form XML.
+	 */
 	public void convertFlatFileToXML()
 	{
 		try 
@@ -143,6 +182,8 @@ public class StrategicFileToXML
 			System.out.println("exception is " + e.toString());
 		}
 	}
+	
+	/* create the required strategy and payoff structures based on defaults */
 	private void parseFlatFile()
 	{
 		//create strategy names
@@ -156,6 +197,7 @@ public class StrategicFileToXML
 		this.stratForm.setAttribute("size", gameSize); 
 	}
 	
+	/* create the required strategy structures based on defaults */
 	private void processStrategies()
 	{
 		Element child = createXMLStrategyNode(this.playerNames.get(0), this.generateRowLabels());
@@ -165,12 +207,14 @@ public class StrategicFileToXML
 		this.stratForm.appendChild(child);
 	}
 	
+	/* create the required player Names based on defaults */
 	private void processPlayerNames()
 	{
 		this.playerNames.add(0, "I");
 		this.playerNames.add(1, "II");
 	}
 	
+	/* create the required payoff structures based on defaults */
 	private void processPayoffs()
 	{
 		String payoff1 = this.a1;
@@ -182,6 +226,7 @@ public class StrategicFileToXML
 		this.stratForm.appendChild(child);
 	}
 	
+	/* Convenience method - create an XML strategy node */
 	private Element createXMLStrategyNode(String player, String strategy)
 	{
 		Element child = this.xmlDoc.createElement("strategy");
@@ -191,6 +236,7 @@ public class StrategicFileToXML
         return child;
 	}
 	
+	/* Convenience method - create an XML payoff node */
 	private Element createXMLPayoffNode(String player, String payoff)
 	{
 		Element child = this.xmlDoc.createElement("payoffs");
@@ -200,7 +246,7 @@ public class StrategicFileToXML
         return child;
 	}
 	
-	//reads the input file le
+	//reads the lines from the input text file
 	private void readFlatFile() 
 	{
 		String fileLine;
@@ -277,6 +323,7 @@ public class StrategicFileToXML
   	    return row;
 	} 
 	
+	//generate default labels in XML format, based on number of strategies
 	private String generateRowLabels() 
 	{
 		 String label;
@@ -301,6 +348,7 @@ public class StrategicFileToXML
 	     return label;
 	}
 	
+	//generate default labels in XML format, based on number of strategies
 	private String generateColumnLabels() 
 	{
 		String label;
