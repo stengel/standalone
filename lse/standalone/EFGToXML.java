@@ -269,6 +269,7 @@ public class EFGToXML
 		if (tokens1.length > 3) //payoffs are included for the node
 		{
 			outcomeName = tokens0[1]; 
+			if (outcomeName.length() == 0) { outcomeName = null; }
 			
 			payoffs = tokens1[3].split(",|\\s+");  //payoffs can be comma or space delimited
 			payoffsList = this.parsePayoffList(payoffs);
