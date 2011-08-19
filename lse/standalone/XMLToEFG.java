@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* last updated August 13, 2011 */
+/* last updated August 18, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ public class XMLToEFG
 	}
 	
 	/* initial processing of the XML file */
-	public void readXML(String filename)
+	private void readXML(String filename)
 	{	
 		Document xml = util.fileToXML(filename);
 		
@@ -376,7 +376,7 @@ public class XMLToEFG
 	}
 	
 	/* create the efg file leveraging the utility class */
-	public void createEFGFile(String xmlFileName)
+	private void createEFGFile(String xmlFileName)
 	{
 		String outFile = xmlFileName.substring(0, xmlFileName.length() - 4) + this.fileSuffix;
 		
