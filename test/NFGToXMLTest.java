@@ -1,5 +1,6 @@
 package lse.standalone;
-/* last updated August 13, 2011 */
+/* author: K. Bletzer */
+/* last updated August 18, 2011 */
 import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
@@ -114,10 +115,10 @@ public class NFGToXMLTest
 		assertEquals("report didn't match xml", xmlString.replace("\n", ""), expectedResult.replace("\n", ""));
 	}
 	
-    /* @Test*/
+    /* @Test */ 
 	public void testValidateNFGDTD() throws ParserConfigurationException, SAXException, IOException
 	{
-		File folder = new File("/Users/kbletzer/Documents/Gambit-Code/efgToXML_test_files");
+		File folder = new File("/Users/kbletzer/Documents/Gambit-Code/nfgToXML_test_files");
 	    File[] listOfFiles = folder.listFiles();
 
 	    for (int i = 0; i <  listOfFiles.length ; i++) 
