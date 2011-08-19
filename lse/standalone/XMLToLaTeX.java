@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* last updated August 13, 2011 */
+/* last updated August 18, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -85,11 +85,11 @@ public class XMLToLaTeX
 	/* Read the main XML elements and call appropriate private functions to handle
 	 * reading child elements. 
 	 */
-	public void readXML(String filename)
+	private void readXML(String filename)
 	{
 		Document xml = util.fileToXML(filename);
 		
-		Element root = (Element)xml.getFirstChild();
+		Node root = xml.getDocumentElement();
 		if ("gte".equals(root.getNodeName())) 
 		{
 			for (Node child = root.getFirstChild(); child != null; child =  child.getNextSibling()) 
@@ -255,7 +255,7 @@ public class XMLToLaTeX
 	}
 	
 	/* create the output file leveraging the utilities class */
-	public void createLaTeXFile(String filename)
+	private void createLaTeXFile(String filename)
 	{
         String outFile = this.filename.substring(0, filename.length() - 4) + this.fileSuffix;
         util.createFile(outFile, this.getLaTeXString()); 
@@ -286,7 +286,7 @@ public class XMLToLaTeX
 	}
 	
 	//create String representing LateX document
-	public String getLaTeXString()
+	private String getLaTeXString()
 	{	
 		ArrayList<String> players = this.getPlayerNames();
 		
