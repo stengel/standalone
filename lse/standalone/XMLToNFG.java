@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* Last updated August 13, 2011 */
+/* Last updated August 18, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -57,7 +57,7 @@ public class XMLToNFG
 	/* begins the process of creating the nfg file by creating the header and 
 	 * calling other methods to complete the work 
 	 */
-	public void createNFGFile(String xmlFileName)
+	private void createNFGFile(String xmlFileName)
 	{
 		ArrayList<String> players = this.getPlayerNames();
 		
@@ -116,12 +116,13 @@ public class XMLToNFG
 	/* reads XML document at the "header" level and requests other methods
 	 * to continue reading child information.
 	 */
-	public void readXML(String filename)
+	private void readXML(String filename)
 	{
 		Document xml = util.fileToXML(filename);
-		
-		Element root = (Element)xml.getFirstChild();
-		if ("gte".equals(root.getNodeName())) 
+		Element root = xml.getDocumentElement();
+
+		//if ("gte".equals(root.getNodeName())) 
+		if (root!=null) 
 		{
 			for (Node child = root.getFirstChild(); child != null; child =  child.getNextSibling()) 
 			{
