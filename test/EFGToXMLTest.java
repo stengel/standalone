@@ -1,5 +1,6 @@
 package lse.standalone;
-/* last updated Augut 13, 2011 */
+/* author: K. Bletzer */
+/* last updated August 18, 2011 */
 import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
@@ -81,6 +82,10 @@ public class EFGToXMLTest
 	    String expectedResult = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	    expectedResult += "<gte version=\"0.1\">\n";
 	    expectedResult += "<gameDescription>Test file - efg to xml</gameDescription>\n";
+	    expectedResult += "<players>\n";
+	    expectedResult += "<player playerId=\"1\">Player 1</player>\n";
+	    expectedResult += "<player playerId=\"2\">Henry</player>\n";
+	    expectedResult += "</players>\n";
 	    expectedResult += "<extensiveForm>\n";
 	    expectedResult += "<node iset=\"1\" isetName=\"(1,1)\" nodeName=\"node 1\">\n";
 	    expectedResult += "<node iset=\"2\" move=\"TAKE\" outcomeId=\"1\" player=\"Henry\" prob=\"1/2\">\n";
@@ -128,7 +133,7 @@ public class EFGToXMLTest
 		assertEquals("report didn't match xml", xmlString.replace("\n", ""), expectedResult.replace("\n", ""));
 	}
 	
-    /* @Test*/
+    /* @Test */
 	public void testValidateEFGDTD() throws ParserConfigurationException, SAXException, IOException
 	{
 		File folder = new File("/Users/kbletzer/Documents/Gambit-Code/efgToXML_test_files");
