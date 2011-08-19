@@ -118,7 +118,7 @@ public class NFGToXMLTest
     /* @Test */ 
 	public void testValidateNFGDTD() throws ParserConfigurationException, SAXException, IOException
 	{
-		File folder = new File("/Users/kbletzer/Documents/Gambit-Code/nfgToXML_test_files");
+		File folder = new File("< enter correct file path here >");
 	    File[] listOfFiles = folder.listFiles();
 
 	    for (int i = 0; i <  listOfFiles.length ; i++) 

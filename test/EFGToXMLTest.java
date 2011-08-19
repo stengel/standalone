@@ -136,7 +136,7 @@ public class EFGToXMLTest
     /* @Test */
 	public void testValidateEFGDTD() throws ParserConfigurationException, SAXException, IOException
 	{
-		File folder = new File("/Users/kbletzer/Documents/Gambit-Code/efgToXML_test_files");
+		File folder = new File("< enter correct file path here >");
 	    File[] listOfFiles = folder.listFiles();
 
 	    //for (int i = 0; i < listOfFiles.length ; i++) 
