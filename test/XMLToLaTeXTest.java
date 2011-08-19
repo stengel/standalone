@@ -1,5 +1,6 @@
 package lse.standalone;
-/* last updated August 13, 2011 */
+/* author: K. Bletzer */
+/* last updated August 18, 2011 */
 //TODO improve flexibility/robustness of testing by using XMLUnit or other XML testing extension
 
 import static org.junit.Assert.assertEquals;
@@ -132,7 +133,6 @@ public class XMLToLaTeXTest
 	
 	private File createTempFile(String filename, String content) throws IOException
 	{
-		//create efg file in temporary folder
 		File file = folder.newFile(filename); 
 		
 		BufferedWriter out = new BufferedWriter(new FileWriter(file));
@@ -141,4 +141,5 @@ public class XMLToLaTeXTest
 	    
 	    return file;
 	}
+	
 }
