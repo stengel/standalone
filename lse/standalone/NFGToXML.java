@@ -525,6 +525,7 @@ public class NFGToXML
 			
 			//Transform XML
 			TransformerFactory factory = TransformerFactory.newInstance();
+			factory.setAttribute("indent-number", new Integer(2));
             Transformer trans = factory.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "yes");
             if(this.testMode)
