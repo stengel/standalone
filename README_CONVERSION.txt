@@ -24,6 +24,12 @@ where EFGToXML above can be replaced by any of the other conversion programs, an
 
 The default output is a file with the same name as the input file and the extension updated to correspond with the output type.   For the example above the output file will be e01.xml.  Note that there is no error checking and each input file is assumed to meet the specifications for its file type.
 
-(4) Further documentation can be found here: <URL to project documentation, to be updated>.
+(4) To change the extension of the target file, and avoid overwriting any of the original files when making multiple conversions, run the command with an additional parameter for the extension as follows:
+
+> java -cp <path to standalone folder> lse.standalone.EFGToXML e01.efg _new.xml
+
+"_new.xml" will be appended to the filename instead of the default .xml extension.  This operates in the same way for all six conversion programs, although of course the extensions will be different for different programs.
+
+(5) Further documentation can be found here: <URL to project documentation, to be updated>.
 
   
