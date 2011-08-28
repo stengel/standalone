@@ -1,7 +1,9 @@
 (1) Download the contents of the git repository kbletzer/standalone to a folder, following the clone github procedures.  Make a note of the path to the standalone directory.  The standalone directory is created in the location where the following git clone command is run.  This folder should contain folders named test and lse, along with other files.
 > git clone git@github.com:kbletzer/standalone.git
 
-(2) Run the script buildConversion.sh in the standalone folder.    The buildConversion.sh script will build all the java classes that are part of the conversion work.  Note that the script does not assume any edits to the classpath variable - the path to the files is explicitly included in the build commands.
+(2a) Within the script buildConversion.sh replace the placeholder text <path to standalone folder> with the actual path to the standalone folder noted in step 1.
+
+(2b) Run the script buildConversion.sh in the standalone folder.    The buildConversion.sh script will build all the java classes that are part of the conversion work.  Note that the script does not assume any edits to the classpath variable - the path to the files is explicitly included in the build commands.
 
 > sh buildConversion.sh
 
