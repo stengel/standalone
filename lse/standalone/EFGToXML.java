@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* Last updated August 13, 2011 */
+/* Last updated August 28, 2011 */
 
 /* More about the .efg file format can be found at:
  * http://www.gambit-project.org/doc/formats.html#file-formats

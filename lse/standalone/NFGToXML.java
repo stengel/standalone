@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* Last updated August 13, 2011 */
+/* Last updated August 28, 2011 */
 package lse.standalone;
 
 import java.io.BufferedReader;

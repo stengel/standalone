@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* last updated August 18, 2011 */
+/* last updated August 28, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
