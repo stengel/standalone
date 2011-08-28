@@ -401,6 +401,12 @@ public class XMLToEFG
 	{	
 		String fn = args[0];
 		XMLToEFG xte = new XMLToEFG(fn);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			xte.setFileSuffix(ext);
+		}
 
 		xte.convertXMLToEFG();	
 	}

@@ -343,6 +343,12 @@ public class XMLToNFG
 	{	
 		String fn = args[0];
 		XMLToNFG xtn = new XMLToNFG(fn);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			xtn.setFileSuffix(ext);
+		}
 
 		xtn.convertXMLToNFG();
 	}

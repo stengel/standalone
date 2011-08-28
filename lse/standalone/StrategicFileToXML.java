@@ -66,11 +66,11 @@ public class StrategicFileToXML
 	
 	/*
 	 * @param fn: filename to change the file that is being converted.
-	 */
+	 
 	public void setFilename(String fn)
 	{
 		filename = fn;
-	}
+	}*/
 	
 	/*
 	 * @param tm: true or false.  If test mode is on the dtd will be refernced
@@ -377,6 +377,12 @@ public class StrategicFileToXML
 	{	
 		String filename = args[0];
 		StrategicFileToXML stx = new StrategicFileToXML(filename);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			stx.setFileSuffix(ext);
+		}
 		stx.convertFlatFileToXML(); 
 		
 	}

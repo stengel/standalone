@@ -579,6 +579,12 @@ public class XMLToLaTeX
 	{	
 		String fn = args[0];
 		XMLToLaTeX xtl = new XMLToLaTeX(fn);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			xtl.setFileSuffix(ext);
+		}
 
 		xtl.convertXMLToLaTeX();
 	}

@@ -551,6 +551,12 @@ public class NFGToXML
 	{	
 	    String fn = args[0];
 		NFGToXML ntx = new NFGToXML(fn);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			ntx.setFileSuffix(ext);
+		}
 
 		ntx.convertNFGToXML();
 	}

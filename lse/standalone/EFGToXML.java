@@ -722,6 +722,12 @@ public class EFGToXML
 	{	
 		String fn = args[0];
 		EFGToXML etx = new EFGToXML(fn);
+		
+		if (args.length > 1)
+		{
+			String ext = args[1];
+			etx.setFileSuffix(ext);
+		}
 
 		etx.convertEFGtoXML(); 
 	}
