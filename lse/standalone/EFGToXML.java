@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* Last updated August 28, 2011 */
+/* Last updated August 31, 2011 */
 
 /* More about the .efg file format can be found at:
  * http://www.gambit-project.org/doc/formats.html#file-formats
@@ -605,8 +605,8 @@ public class EFGToXML
             DOMSource source = new DOMSource(this.xmlDoc);
             trans.transform(source, result);
             String xmlString = result.getWriter().toString();
+            xmlString = util.orderXMLAttributes(xmlString);
 
-            //print xml, each element on a separate line
             String outFile = this.filename.substring(0, filename.length() - 4) + this.fileSuffix;
             util.createFile(outFile, xmlString);
 		}

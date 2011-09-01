@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* Last updated August 12, 2011 */
+/* Last updated August 31, 2011 */
 package lse.standalone;
 
 import java.io.BufferedWriter;
@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -196,8 +198,6 @@ public class ConversionUtilities
 	 */
 	public Node updatePlayersNode(ArrayList<String> players, Document xmlDoc, Node elPlayers)
 	{
-		//Element elPlayers = xmlDoc.createElement("players");
-
 		for (int i = 1; i <= players.size(); i++)
 		{
 		   String playerName = players.get(i-1).trim();
@@ -211,5 +211,103 @@ public class ConversionUtilities
 		}
 		
 		return elPlayers;
+	}
+
+	/* for all outcome or node tags sort the attributes in the tags
+	 * according to a predetermined order.
+	 */
+	public String orderXMLAttributes(String origXML)
+	{
+		String newXML = "";
+		//match the start tag of either outcome or node elements
+		//Pattern p = Pattern.compile("<(node|outcome).*>");
+		Pattern p = Pattern.compile("<(node|outcome).*\\/?>");
+
+		Matcher m = p.matcher(origXML);
+
+		while (m.find()) 
+		{
+			String s = m.group();
+
+			//strip off characters that are not part of the attribute list
+			s = s.replaceAll("<(node|outcome)", "");
+			s = s.replace("/>", "").trim();
+			s = s.replace(">", "").trim();
+			
+			List<String> attributesToArrayList = (List<String>)this.attributesToArrayList(s);
+			List<String> list = this.sortAttributes(attributesToArrayList);
+			String s_new = "";
+			
+			for (int i = 0; i < list.size(); i++)
+			{
+				s_new += list.get(i) + " ";
+			}
+			
+			s = Pattern.quote(s);
+			newXML = origXML.replaceFirst(s, s_new.trim());
+		}
+				
+		return newXML; 
+	}
+	
+	/* Sort the attributes in the attributes List and return a List.
+	 */
+	private List<String> sortAttributes(List<String> al)
+	{
+		List<String> orderList = this.getAttributeOrderMapping();
+		ArrayList<String> attributes 
+			= new ArrayList<String>(Arrays.asList("", "", "", "", "", "", "", "", "", ""));
+		
+		if (al.size() > 1)
+		{
+			for(int j = 0; j < al.size(); j++)
+			{
+				String currAttr = al.get(j);
+				String key = currAttr.substring(0, currAttr.indexOf("="));
+				attributes.set(orderList.indexOf(key), currAttr);
+			}
+			
+			//cleanup blanks leaving only attributes
+			attributes.removeAll(Arrays.asList(""));  
+		}
+		
+		return al;
+	}
+	
+	/* The order for attributes is defined here.
+	 */
+	private List<String> getAttributeOrderMapping()
+	{
+		List<String> al = new ArrayList<String>();
+		
+		al.add("iset");
+		al.add("isetName");
+		al.add("player");
+		al.add("move");
+		al.add("prob");
+		al.add("nodeName");
+		al.add("outcomeId");
+		al.add("outcomeName");
+
+		return al;
+	}
+	
+	/* Take a string containing attributes and transform to a List.
+	 */
+	private List<String> attributesToArrayList(String attr)
+	{
+		//match attribute of form attrName="value"
+		Pattern p = Pattern.compile("[a-zA-Z]+=\"[^\"]*\"");
+
+		Matcher m = p.matcher(attr);
+		ArrayList<String> al = new ArrayList<String>();
+
+		while (m.find()) 
+		{
+			String s = m.group();
+			al.add(s);
+		}
+		
+		return al;
 	}
 }
