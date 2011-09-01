@@ -1,5 +1,5 @@
 /* author: K. Bletzer */
-/* last updated August 28, 2011 */
+/* last updated September 1, 2011 */
 package lse.standalone;
 
 import java.util.ArrayList;
@@ -306,14 +306,14 @@ public class XMLToLaTeX
 	}
 
 	//map tokens found in the input file to the bimatrix macro template
-	//Excpected output format is similar to:
+	//Expected output format is similar to:
 	// \bimatrixgame{4mm}{2}{3}{I}{II}%
-	//    {{T}{B}}%
-	//    {{l}{c}{r}}
-	//    {
-	//    \payoffpairs{1}{012}{421}
-	//    \payoffpairs{2}{301}{132}
-	//    } 
+	// {{T}{B}}%
+	// {{l}{c}{r}}
+	// {
+	// \payoffpairs{1}{012}{421}
+	// \payoffpairs{2}{301}{132}
+	// } 
 	private String mapTokensToBMTemplate()
 	{
 		String s = "\n";
